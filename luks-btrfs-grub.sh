@@ -29,4 +29,4 @@ mount -o noatime,compress=zstd,space_cache=v2,discard=async,ssd,subvol=@home /de
 mkdir /mnt/efi
 mount /dev/nvme0n1p1 /mnt/efi
 
-pacstrap /mnt base linux linux-firmware intel-ucode btrfs-progs networkmanager vim man-db man-pages base-devel git grub grub-btrfs efibootmgr
+pacstrap /mnt base linux linux-firmware intel-ucode btrfs-progs networkmanager vim man-db man-pages base-devel git grub efibootmgr
