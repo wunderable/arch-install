@@ -33,3 +33,11 @@ pacstrap /mnt base linux linux-firmware intel-ucode btrfs-progs networkmanager v
 
 genfstab -U /mnt >> /mnt/etc/fstab
 arch-chroot
+
+tee /etc/mkinitcpio.conf << EOF
+MODULES=(vdm)
+BINARIES=(/usr/bin/btrfs)
+HOOKS=(base udev autodetect keyobard consolefont modconf block encrypt btrfs filesystems fsck)
+FILES=()
+EOF
+mkinitcpio -p linux
