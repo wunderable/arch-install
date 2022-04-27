@@ -32,12 +32,22 @@ mount /dev/nvme0n1p1 /mnt/efi
 pacstrap /mnt base linux linux-firmware intel-ucode btrfs-progs networkmanager vim man-db man-pages base-devel git grub efibootmgr
 
 genfstab -U /mnt >> /mnt/etc/fstab
-arch-chroot
 
-tee /etc/mkinitcpio.conf << EOF
-MODULES=(vmd)
-BINARIES=(/usr/bin/btrfs)
-HOOKS=(base udev autodetect keyobard consolefont modconf block encrypt btrfs filesystems fsck)
-FILES=()
+tee /mnt/setup.sh << EOF
+#!/bin/sh
+ln -sf /usr/share/zoneinfo/America/Chicago /etc/localtime
+hwclock --systohc
+echo 'en_US.UTF-8 UTF-8' > /etc/locale.gen
+locale-gen
+echo 'LANG=en_US.UTF-8' > /etc/locale.conf
+echo 'yoga' > /etc/hostname
+echo -e "127.0.0.1\tlocalhost\n::1\t\tlocalhost\n127.0.1.1\tyoga" >> /etc/hosts
+ln -s /usr/bin/vim /usr/bin/vi
+echo 'export EDITOR=vim' > /etc/profile.d/env.sh
+useradd -m -G wheel dan
+passwd
+passwd dan
 EOF
-mkinitcpio -p linux
+
+arch-chroot /mnt setup.sh
+rm /mnt/setup.sh
