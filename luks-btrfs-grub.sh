@@ -2,10 +2,10 @@
 
 sgdisk --zap-all /dev/nvme0n1
 sgdisk --clear /dev/nvme0n1
-sgdisk --new 1:0:+100M --typecode 1:ef00 /dev/nvme0n1
+sgdisk --new 1:0:+250M --typecode 1:ef00 /dev/nvme0n1
 sgdisk --new 2:0:0 --typecode 2:8300 /dev/nvme0n1
 
-mkfs.fat -F32 -n EFI /dev/nvme0n1p1
+mkfs.fat -F32 -n BOOT /dev/nvme0n1p1
 cryptsetup --type luks1 luksFormat /dev/nvme0n1p2
 cryptsetup open /dev/nvme0n1p2 root
 mkfs.btrfs -L ROOT /dev/mapper/root
@@ -26,8 +26,8 @@ umount /mnt
 mount -o noatime,compress=zstd,space_cache=v2,discard=async,ssd,subvol=@ /dev/mapper/root /mnt
 mkdir /mnt/home
 mount -o noatime,compress=zstd,space_cache=v2,discard=async,ssd,subvol=@home /dev/mapper/root /mnt/home
-mkdir /mnt/efi
-mount /dev/nvme0n1p1 /mnt/efi
+mkdir /mnt/boot
+mount /dev/nvme0n1p1 /mnt/boot
 
 pacstrap /mnt base linux linux-firmware intel-ucode btrfs-progs networkmanager vim man-db man-pages base-devel git grub efibootmgr
 
