@@ -39,7 +39,7 @@ pacstrap /mnt base linux linux-firmware intel-ucode btrfs-progs networkmanager v
 genfstab -U /mnt >> /mnt/etc/fstab
 
 # Create file to be run in arch-chrooted environment
-tee /root/install.sh <<-"EOF"
+tee /mnt/install.sh <<-"EOF"
 #!/bin/sh
 
 # Update hooks
@@ -80,4 +80,4 @@ passwd dan
 EOF
 
 # Run the chrooted install file
-arch-chroot /mnt sh /root/install.sh
+arch-chroot /mnt ./install.sh
