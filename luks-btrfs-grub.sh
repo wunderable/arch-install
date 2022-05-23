@@ -33,13 +33,13 @@ pacstrap /mnt base linux linux-firmware intel-ucode btrfs-progs networkmanager v
 
 genfstab -U /mnt >> /mnt/etc/fstab
 
-tee /mnt/setup.sh << EOF
+tee /root/setup.sh << EOF
 #!/bin/sh
-tee /etc/mkinitcpio.conf << EOT
-MODULES=(vmd)
-BINARIES=(/usr/bin/btrfs)
-HOOKS=(base udev autodetect keyboard consolefont modconf block encrypt btrfs filesystems fsck)
-EOT
+tee /etc/mkinitcpio.conf <<- EOT
+  MODULES=(vmd)
+  BINARIES=(/usr/bin/btrfs)
+  HOOKS=(base udev autodetect keyboard consolefont modconf block encrypt btrfs filesystems fsck)
+  EOT
 mkinitcpio -p linux
 ln -sf /usr/share/zoneinfo/America/Chicago /etc/localtime
 hwclock --systohc
@@ -55,5 +55,4 @@ passwd
 passwd dan
 EOF
 
-arch-chroot /mnt setup.sh
-rm /mnt/setup.sh
+arch-chroot /mnt /root/setup.sh
