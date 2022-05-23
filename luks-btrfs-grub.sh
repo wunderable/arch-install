@@ -44,10 +44,10 @@ tee /mnt/install.sh <<-"EOF"
 
 # Update hooks
 tee /etc/mkinitcpio.conf <<-"EOT"
-  MODULES=(vmd)
-  BINARIES=(/usr/bin/btrfs)
-  HOOKS=(base udev autodetect keyboard consolefont modconf block encrypt btrfs filesystems fsck)
-  EOT
+	MODULES=(vmd)
+	BINARIES=(/usr/bin/btrfs)
+	HOOKS=(base udev autodetect keyboard consolefont modconf block encrypt btrfs filesystems fsck)
+	EOT
 mkinitcpio -p linux
 
 # Install grub
@@ -67,11 +67,12 @@ echo -e "127.0.0.1\tlocalhost\n::1\t\tlocalhost\n127.0.1.1\tyoga" >> /etc/hosts
 ln -s /usr/bin/vim /usr/bin/vi
 echo 'export EDITOR=vim' > /etc/profile.d/env.sh
 tee /etc/profile.d/aliases.sh <<-"EOT"
-  alias view="vim -R"
-  alias ll="ls -hAl"
-  alias la="ls -a"
-  alias cd..="cd .."
-  EOT
+	alias view="vim -R"
+	alias ll="ls -hAl"
+	alias la="ls -a"
+	alias cd..="cd .."
+	alias bat="cat /sys/class/power_supply/BAT0/capacity"
+	EOT
 
 # Create user and set passwords
 useradd -m -G wheel dan
