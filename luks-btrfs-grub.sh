@@ -78,7 +78,8 @@ tee /etc/profile.d/aliases.sh <<-"EOT"
 useradd -m -G wheel dan
 passwd
 passwd dan
+visudo
 EOF
 
 # Run the chrooted install file
-arch-chroot /mnt ./install.sh
+arch-chroot /mnt sh install.sh
