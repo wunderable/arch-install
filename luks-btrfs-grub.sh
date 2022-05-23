@@ -39,11 +39,11 @@ pacstrap /mnt base linux linux-firmware intel-ucode btrfs-progs networkmanager v
 genfstab -U /mnt >> /mnt/etc/fstab
 
 # Create file to be run in arch-chrooted environment
-tee /root/install.sh << EOF
+tee /root/install.sh <<-"EOF"
 #!/bin/sh
 
 # Update hooks
-tee /etc/mkinitcpio.conf <<- EOT
+tee /etc/mkinitcpio.conf <<-"EOT"
   MODULES=(vmd)
   BINARIES=(/usr/bin/btrfs)
   HOOKS=(base udev autodetect keyboard consolefont modconf block encrypt btrfs filesystems fsck)
@@ -73,4 +73,4 @@ passwd dan
 EOF
 
 # Run the chrooted install file
-arch-chroot /mnt /root/install.sh
+arch-chroot /mnt sh /root/install.sh
