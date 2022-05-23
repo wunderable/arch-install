@@ -35,6 +35,12 @@ genfstab -U /mnt >> /mnt/etc/fstab
 
 tee /mnt/setup.sh << EOF
 #!/bin/sh
+tee /etc/mkinitcpio.conf << EOT
+MODULES=(vmd)
+BINARIES=(/usr/bin/btrfs)
+HOOKS=(base udev autodetect keyboard consolefont modconf block encrypt btrfs filesystems fsck)
+EOT
+mkinitcpio -p linux
 ln -sf /usr/share/zoneinfo/America/Chicago /etc/localtime
 hwclock --systohc
 echo 'en_US.UTF-8 UTF-8' > /etc/locale.gen
