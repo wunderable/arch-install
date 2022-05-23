@@ -54,7 +54,7 @@ mkinitcpio -p linux
 
 # Install grub
 mkdir /boot/efi
-awk -vFPAT='([^=]*)|("[^"]+")' -vOFS== -vID="$(blkid -s PARTUIID -o value /dev/nvme0n1p2)" '{if($1=="GRUB_CMDLINE_LINUX_DEFAULT") $2="\"cryptdevice=PARTUUID=" ID ":root root=/dev/mapper/root " substr($2,2);if($1=="#GRUB_ENABLE_CRYPTODISK") $1=substr($1,2);print}' /etc/default/grub > /etc/default/grub.new
+awk -vFPAT='([^=]*)|("[^"]+")' -vOFS== -vID="$(blkid -s PARTUIID -o value /dev/nvme0n1p2)" '{if($1=="GRUB_CMDLINE_LINUX_DEFAULT") $2="\"cryptodevice=PARTUUID=" ID ":root root=/dev/mapper/root " substr($2,2);if($1=="#GRUB_ENABLE_CRYPTODISK") $1=substr($1,2);print}' /etc/default/grub > /etc/default/grub.new
 mv /etc/default/grub.new /etc/default/grub
 grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB
 
