@@ -4,12 +4,12 @@
 sgdisk --zap-all /dev/nvme0n1
 sgdisk --clear /dev/nvme0n1
 #badblocks -wsv -t random /dev/nvme0n1
-sgdisk --new 1:0:+250M --typecode 1:ef00 /dev/nvme0n1
-sgdisk --new 2:0:0 --typecode 2:8300 /dev/nvme0n1
+sgdisk -n 1:0:+250M -t 1:ef00 /dev/nvme0n1
+sgdisk -N 2 /dev/nvme0n1
 
 # Format partitions
 mkfs.fat -F32 -n BOOT /dev/nvme0n1p1
-cryptsetup --type luks1 luksFormat /dev/nvme0n1p2
+cryptsetup --label CRYPT luksFormat /dev/nvme0n1p2
 cryptsetup open /dev/nvme0n1p2 root
 mkfs.btrfs -L ROOT /dev/mapper/root
 
