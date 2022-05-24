@@ -40,7 +40,7 @@ pacstrap /mnt base linux linux-firmware intel-ucode btrfs-progs networkmanager v
 genfstab -U /mnt >> /mnt/etc/fstab
 
 # Create file to be run in arch-chrooted environment
-tee /mnt/install.sh <<-"EOF"
+tee /mnt/install.sh <<"EOF"
 #!/bin/sh
 
 mkdir /.snapshots
@@ -55,10 +55,9 @@ tee /etc/mkinitcpio.conf <<-"EOT"
 mkinitcpio -p linux
 
 # Install grub
-mkdir /boot/efi
 awk -vFPAT='([^=]*)|("[^"]+")' -vOFS== -vID="$(blkid -s UUID -o value /dev/nvme0n1p2)" '{if($1=="GRUB_CMDLINE_LINUX_DEFAULT") $2="\"cryptdevice=UUID=" ID ":root root=/dev/mapper/root rootflags=subvol=@ " substr($2,2);print}' /etc/default/grub > /etc/default/grub.new
 mv /etc/default/grub.new /etc/default/grub
-grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB
+grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
 
 # Basic settings
