@@ -88,3 +88,8 @@ EOF
 
 # Run the chrooted install file
 arch-chroot /mnt sh install.sh
+
+# Finish installation
+rm /mnt/install.sh
+umount -R /mnt
+reboot
