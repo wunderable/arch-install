@@ -3,6 +3,7 @@
 # Create partitions
 sgdisk --zap-all /dev/nvme0n1
 sgdisk --clear /dev/nvme0n1
+#badblocks -wsv -t random /dev/nvme0n1
 sgdisk --new 1:0:+250M --typecode 1:ef00 /dev/nvme0n1
 sgdisk --new 2:0:0 --typecode 2:8300 /dev/nvme0n1
 
