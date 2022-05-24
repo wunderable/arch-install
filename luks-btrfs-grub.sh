@@ -49,6 +49,7 @@ mkdir /.snapshots
 tee /etc/mkinitcpio.conf <<-"EOT"
 	MODULES=(vmd)
 	BINARIES=(/usr/bin/btrfs)
+	FILES=()
 	HOOKS=(base udev autodetect keyboard consolefont modconf block encrypt btrfs filesystems fsck)
 	EOT
 mkinitcpio -p linux
