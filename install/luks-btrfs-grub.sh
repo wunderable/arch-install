@@ -4,7 +4,7 @@
 sgdisk --zap-all /dev/nvme0n1
 sgdisk --clear /dev/nvme0n1
 #badblocks -wsv -t random /dev/nvme0n1
-sgdisk -n 1:0:+250M -t 1:ef00 /dev/nvme0n1
+sgdisk -n 1:0:+1280M -t 1:ef00 /dev/nvme0n1
 sgdisk -N 2 /dev/nvme0n1
 
 # Format partitions
@@ -77,6 +77,10 @@ tee /etc/profile.d/aliases.sh <<-"EOT"
 	alias la="ls -a"
 	alias cd..="cd .."
 	alias bat="cat /sys/class/power_supply/BAT0/capacity"
+	alias datef="date +%4Y%m%d_%H%M%S"
+	alias datec="date +%4Y%m%d"
+	alias datei="date +%F"
+	alias datel="date +%F_%T"
 	EOT
 
 # Create user and set passwords
