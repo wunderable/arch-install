@@ -1,7 +1,6 @@
 #!/bin/sh
 
 # Create partitions
-sgdisk --zap-all /dev/nvme0n1
 sgdisk --clear /dev/nvme0n1
 #badblocks -wsv -t random /dev/nvme0n1
 sgdisk -n 1:0:+1280M -t 1:ef00 /dev/nvme0n1
