@@ -15,8 +15,8 @@ mkfs.btrfs -L ROOT /dev/mapper/root
 
 # Create subvolumes
 mount /dev/mapper/root /mnt
-mkdir -p /mnt/var/cache/pacman
-mkdir -p /mnt/home/dan
+mkdir -p /mnt/@/var/cache/pacman
+mkdir -p /mnt/@home/dan
 btrfs sub create /mnt/@
 btrfs sub create /mnt/@home
 btrfs sub create /mnt/@/.snapshots
