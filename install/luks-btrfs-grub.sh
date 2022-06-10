@@ -83,6 +83,8 @@ tee /etc/profile.d/aliases.sh <<-"EOT"
 
 # Create user and set passwords
 useradd -m -G wheel dan
+cp /etc/skel/.* /home/dan
+chown -R dan:dan /home/dan
 passwd
 passwd dan
 visudo
