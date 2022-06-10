@@ -19,11 +19,12 @@ mkdir -p /mnt/var/cache/pacman
 mkdir -p /mnt/home/dan
 btrfs sub create /mnt/@
 btrfs sub create /mnt/@home
-btrfs sub create /mnt/.snapshots
-btrfs sub create /mnt/var/cache/pacman/pkg
-btrfs sub create /mnt/var/log
-btrfs sub create /mnt/var/tmp
-btrfs sub create /mnt/home/dan/.cache
+btrfs sub create /mnt/@/.snapshots
+btrfs sub create /mnt/@home/.snapshots
+btrfs sub create /mnt/@/var/cache/pacman/pkg
+btrfs sub create /mnt/@/var/log
+btrfs sub create /mnt/@/var/tmp
+btrfs sub create /mnt/@home/dan/.cache
 umount /mnt
 
 # Mount partitions
@@ -42,8 +43,6 @@ genfstab -U /mnt >> /mnt/etc/fstab
 # Create file to be run in arch-chrooted environment
 tee /mnt/install.sh <<"EOF"
 #!/bin/sh
-
-mkdir /.snapshots
 
 # Update hooks
 tee /etc/mkinitcpio.conf <<-"EOT"
