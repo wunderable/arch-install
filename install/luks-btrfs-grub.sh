@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Get base directory of this project
+DIR="$( cd "../$( dirname "$0" )" && pwd )"
+
 # Create partitions
 sgdisk --clear /dev/nvme0n1
 #badblocks -wsv -t random /dev/nvme0n1
@@ -39,6 +42,9 @@ pacstrap /mnt base linux linux-firmware intel-ucode btrfs-progs networkmanager v
 # Generate fstab file
 genfstab -U /mnt >> /mnt/etc/fstab
 
+# Copy files from github to installed OS
+cp $DIR/profile.d/aliases.sh /mnt/etc/profile.d/aliases.sh
+
 # Create file to be run in arch-chrooted environment
 tee /mnt/install.sh <<"EOF"
 #!/bin/sh
@@ -68,18 +74,6 @@ echo 'yoga' > /etc/hostname
 echo -e "127.0.0.1\tlocalhost\n::1\t\tlocalhost\n127.0.1.1\tyoga" >> /etc/hosts
 ln -s /usr/bin/vim /usr/bin/vi
 echo 'export EDITOR=vim' > /etc/profile.d/env.sh
-tee /etc/profile.d/aliases.sh <<-"EOT"
-	alias view="vim -R"
-	alias ls="ls --color=auto"
-	alias ll="ls -hAl"
-	alias la="ls -a"
-	alias cd..="cd .."
-	alias bat="cat /sys/class/power_supply/BAT0/capacity"
-	alias datef="date +%4Y%m%d_%H%M%S"
-	alias datec="date +%4Y%m%d"
-	alias datei="date +%F"
-	alias datel="date +%F_%T"
-	EOT
 
 # Create user and set passwords
 useradd -m -G wheel dan
