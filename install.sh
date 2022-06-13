@@ -5,7 +5,7 @@ DIR="$( cd "$( dirname "$0" )" && pwd )"
 
 # Create partitions
 sgdisk --clear /dev/nvme0n1
-#badblocks -wsv -t random /dev/nvme0n1
+badblocks -wsv -t random /dev/nvme0n1
 sgdisk -n 1:0:+1280M -t 1:ef00 /dev/nvme0n1
 sgdisk -N 2 /dev/nvme0n1
 
@@ -44,6 +44,9 @@ genfstab -U /mnt >> /mnt/etc/fstab
 
 # Copy files from github to installed OS
 cp $DIR/profile.d/aliases.sh /mnt/etc/profile.d/aliases.sh
+cp $DIR/src/grub-update-iso.sh /mnt/usr/local/src/grub-update-iso.sh
+chmod +x /mnt/usr/local/src/grub-update-iso.sh
+ln -s /mnt/usr/local/src/grub-update-iso.sh /usr/local/bin/grub-update-iso
 
 # Create file to be run in arch-chrooted environment
 tee /mnt/install.sh <<"EOF"
@@ -71,7 +74,7 @@ tee -a /etc/grub.d/40_custom <<-"END"
 	    initrd (loop)/arch/boot/intel-ucode.img (loop)/arch/boot/x86_64/initramfs-linux.img
 	}
 	END
-sed -i "s/xxxx-xxxx/$(blkid -s UUID -o value)" /etc/grub.d/40_custom
+sed -i "s/xxxx-xxxx/$(blkid -s UUID -o value /dev/nvme0n1p1)" /etc/grub.d/40_custom
 grub-mkconfig -o /boot/grub/grub.cfg
 
 # Basic settings
