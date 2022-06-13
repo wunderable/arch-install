@@ -65,7 +65,7 @@ grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
 tee -a /etc/grub.d/40_custom <<-"END"
 	menuentry 'Live ISO' {
 	    set imgdevpath='/dev/disk/by-uuid/xxxx-xxxx'
-	    set isofile='/iso/archlinux-YYYY.MM.DD-x86_64.iso'
+	    set isofile='/iso/archlinux-x86_64.iso'
 	    loopback loop $isofile
 	    linux (loop)/arch/boot/x86_64/vmlinuz-linux img_dev=$imgdevpath img_loop=$isofile earlymodules=loop
 	    initrd (loop)/arch/boot/intel-ucode.img (loop)/arch/boot/x86_64/initramfs-linux.img
