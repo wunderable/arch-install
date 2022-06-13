@@ -1,1 +1,10 @@
-
+alias view="vim -R"
+alias ls="ls --color=auto"
+alias ll="ls -hAl"
+alias la="ls -a"
+alias cd..="cd .."
+alias bat="cat /sys/class/power_supply/BAT0/capacity"
+alias datef="date +%4Y%m%d_%H%M%S"
+alias datec="date +%4Y%m%d"
+alias datei="date +%F"
+alias datel="date +%F_%T"
