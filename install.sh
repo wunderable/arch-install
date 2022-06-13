@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Get base directory of this project
-DIR="$( cd "../$( dirname "$0" )" && pwd )"
+DIR="$( cd "$( dirname "$0" )" && pwd )"
 
 # Create partitions
 sgdisk --clear /dev/nvme0n1
