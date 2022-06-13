@@ -77,6 +77,7 @@ tee -a /etc/grub.d/40_custom <<-"END"
 mkdir /boot/iso
 sed -i "s/xxxx-xxxx/$(blkid -s UUID -o value /dev/nvme0n1p1)/" /etc/grub.d/40_custom
 grub-mkconfig -o /boot/grub/grub.cfg
+grub-update-iso
 
 # Basic settings
 ln -sf /usr/share/zoneinfo/America/Chicago /etc/localtime
