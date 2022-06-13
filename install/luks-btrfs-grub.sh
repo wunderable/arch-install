@@ -50,18 +50,28 @@ tee /mnt/install.sh <<"EOF"
 #!/bin/sh
 
 # Update hooks
-tee /etc/mkinitcpio.conf <<-"EOT"
+tee /etc/mkinitcpio.conf <<-"END"
 	MODULES=(vmd)
 	BINARIES=(/usr/bin/btrfs)
 	FILES=()
 	HOOKS=(base udev autodetect keyboard consolefont modconf block encrypt btrfs filesystems fsck)
-	EOT
+	END
 mkinitcpio -p linux
 
 # Install grub
 awk -vFPAT='([^=]*)|("[^"]+")' -vOFS== -vID="$(blkid -s UUID -o value /dev/nvme0n1p2)" '{if($1=="GRUB_CMDLINE_LINUX_DEFAULT") $2="\"cryptdevice=UUID=" ID ":root root=/dev/mapper/root rootflags=subvol=@ " substr($2,2);print}' /etc/default/grub > /etc/default/grub.new
 mv /etc/default/grub.new /etc/default/grub
 grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
+tee -a /etc/grub.d/40_custom <<-"END"
+	menuentry 'Live ISO' {
+	    set imgdevpath='/dev/disk/by-uuid/xxxx-xxxx'
+	    set isofile='/iso/archlinux-YYYY.MM.DD-x86_64.iso'
+	    loopback loop $isofile
+	    linux (loop)/arch/boot/x86_64/vmlinuz-linux img_dev=$imgdevpath img_loop=$isofile earlymodules=loop
+	    initrd (loop)/arch/boot/intel-ucode.img (loop)/arch/boot/x86_64/initramfs-linux.img
+	}
+	END
+sed -i "s/xxxx-xxxx/$(blkid -s UUID -o value)" /etc/grub.d/40_custom
 grub-mkconfig -o /boot/grub/grub.cfg
 
 # Basic settings
