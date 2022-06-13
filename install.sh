@@ -46,7 +46,7 @@ genfstab -U /mnt >> /mnt/etc/fstab
 cp $DIR/profile.d/aliases.sh /mnt/etc/profile.d/aliases.sh
 cp $DIR/src/grub-update-iso.sh /mnt/usr/local/src/grub-update-iso.sh
 chmod +x /mnt/usr/local/src/grub-update-iso.sh
-ln -s /mnt/usr/local/src/grub-update-iso.sh /usr/local/bin/grub-update-iso
+ln -s /mnt/usr/local/src/grub-update-iso.sh /mnt/usr/local/bin/grub-update-iso
 
 # Create file to be run in arch-chrooted environment
 tee /mnt/install.sh <<"EOF"
@@ -74,7 +74,8 @@ tee -a /etc/grub.d/40_custom <<-"END"
 	    initrd (loop)/arch/boot/intel-ucode.img (loop)/arch/boot/x86_64/initramfs-linux.img
 	}
 	END
-sed -i "s/xxxx-xxxx/$(blkid -s UUID -o value /dev/nvme0n1p1)" /etc/grub.d/40_custom
+mkdir /boot/iso
+sed -i "s/xxxx-xxxx/$(blkid -s UUID -o value /dev/nvme0n1p1)/" /etc/grub.d/40_custom
 grub-mkconfig -o /boot/grub/grub.cfg
 
 # Basic settings
