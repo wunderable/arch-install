@@ -16,7 +16,7 @@ cryptsetup open /dev/nvme0n1p2 root
 mkfs.btrfs -L ROOT /dev/mapper/root
 
 # Create subvolumes
-mount /dev/mapper/root /mnt
+mount -o noatime,compress=zstd,space_cache=v2,discard=async,ssd,subvolid=5 /dev/mapper/root /mnt
 btrfs sub create /mnt/@
 btrfs sub create /mnt/@home
 btrfs sub create /mnt/@/.snapshots
@@ -76,6 +76,7 @@ tee -a /etc/grub.d/40_custom <<-"END"
 	END
 mkdir /boot/iso
 sed -i "s/xxxx-xxxx/$(blkid -s UUID -o value /dev/nvme0n1p1)/" /etc/grub.d/40_custom
+sed -i 's/^\s+/\t/' /etc/grub.d/40_custom
 grub-mkconfig -o /boot/grub/grub.cfg
 grub-update-iso
 
