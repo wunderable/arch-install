@@ -19,14 +19,12 @@ mkfs.btrfs -L ROOT /dev/mapper/root
 mount -o noatime,compress=zstd,space_cache=v2,discard=async,ssd,subvolid=5 /dev/mapper/root /mnt
 btrfs sub create /mnt/@
 btrfs sub create /mnt/@home
-btrfs sub create /mnt/@/.snapshots
-btrfs sub create /mnt/@home/.snapshots
-mkdir -p /mnt/@/var/cache/pacman
-mkdir -p /mnt/@home/dan
-btrfs sub create /mnt/@/var/cache/pacman/pkg
+btrfs sub create /mnt/@snapshots
+mkdir /mnt/@/var
+btrfs sub create /mnt/@/var/cache
 btrfs sub create /mnt/@/var/log
 btrfs sub create /mnt/@/var/tmp
-btrfs sub create /mnt/@home/dan/.cache
+btrfs sub create /mnt/@/tmp
 umount /mnt
 
 # Mount partitions
