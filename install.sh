@@ -20,9 +20,9 @@ mount -o noatime,compress=zstd,space_cache=v2,discard=async,ssd,subvolid=5 /dev/
 btrfs sub create /mnt/@
 btrfs sub create /mnt/@home
 btrfs sub create /mnt/@snapshots
+btrfs sub create /mnt/@var_log
 mkdir /mnt/@/var
 btrfs sub create /mnt/@/var/cache
-btrfs sub create /mnt/@/var/log
 btrfs sub create /mnt/@/var/tmp
 btrfs sub create /mnt/@/tmp
 umount /mnt
@@ -31,6 +31,10 @@ umount /mnt
 mount -o noatime,compress=zstd,space_cache=v2,discard=async,ssd,subvol=@ /dev/mapper/root /mnt
 mkdir /mnt/home
 mount -o noatime,compress=zstd,space_cache=v2,discard=async,ssd,subvol=@home /dev/mapper/root /mnt/home
+mkdir /mnt/snapshots
+mount -o noatime,compress=zstd,space_cache=v2,discard=async,ssd,subvol=@snapshots /dev/mapper/root /mnt/snapshots
+mkdir -p /mnt/var/log
+mount -o noatime,compress=zstd,space_cache=v2,discard=async,ssd,subvole=@var_log /dev/mapper/root /mnt/var/log
 mkdir /mnt/boot
 mount /dev/nvme0n1p1 /mnt/boot
 
