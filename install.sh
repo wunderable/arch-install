@@ -150,13 +150,11 @@ sed -i "s/<\$USER_PASS>/$USER_PASS/g" /mnt/install.sh
 arch-chroot /mnt sh install.sh
 
 ############
-# CLEAN UP #
+# FINALIZE #
 ############
 
-# Clean up
+# Clean up and finish installation
 chown -R 1000:1000 /mnt/home/$USER
-
-# Finish installation
 rm /mnt/install.sh
 umount -R /mnt
 reboot
