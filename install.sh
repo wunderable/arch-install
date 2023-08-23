@@ -104,7 +104,7 @@ hwclock --systohc
 echo 'en_US.UTF-8 UTF-8' > /etc/locale.gen
 echo 'LANG=en_US.UTF-8' > /etc/locale.conf
 locale-gen
-echo 'host' > /etc/hostname
+echo '<$HOST>' > /etc/hostname
 echo -e "127.0.0.1\tlocalhost\n::1\t\tlocalhost\n127.0.1.1\t<$HOST>.localdomain <$HOST>" >> /etc/hosts
 echo 'EDITOR=vim' >> /etc/environment
 ln -s /usr/bin/vim /usr/bin/vi
