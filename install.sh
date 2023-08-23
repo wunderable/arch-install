@@ -132,13 +132,18 @@ grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
 # Update GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
 
-# Set root password
+# Create user and set passwords
+user add -m -G wheel <$USER>
+cp -a /etc/skel/. /home/<$USER>/
+echo <$USER>:<$USER_PASS> | chpasswd
 echo root:<$USER_PASS> | chpasswd
+sed -Ei "s/^# (%wheel ALL=\(ALL:ALL\) ALL)/\1/" /etc/sudoers
 
 EOF
 
 # Replace variable placeholders with their variable values
 sed -i "s/<\$HOST>/$HOST/g" /mnt/install.sh
+sed -i "s/<\$USER>/$USER/g" /mnt/install.sh
 sed -i "s/<\$USER_PASS>/$USER_PASS/g" /mnt/install.sh
 
 # Run the chrooted install file
@@ -147,6 +152,9 @@ arch-chroot /mnt sh install.sh
 ############
 # CLEAN UP #
 ############
+
+# Clean up
+chown -R 1000:1000 /mnt/home/$USER
 
 # Finish installation
 rm /mnt/install.sh
