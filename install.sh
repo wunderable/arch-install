@@ -133,7 +133,7 @@ grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
 
 # Create user and set passwords
-user add -m -G wheel <$USER>
+useradd -m -G wheel <$USER>
 cp -a /etc/skel/. /home/<$USER>/
 echo <$USER>:<$USER_PASS> | chpasswd
 echo root:<$USER_PASS> | chpasswd
