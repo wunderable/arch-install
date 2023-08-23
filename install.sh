@@ -5,10 +5,10 @@
 ###########################################
 
 # User defined variables. Script will ask for them interactively if set to an empty string
-DEV=''				# The block device to install to
-USER=''				# Username of primary user
-USER_PASS=''		# Password of primary user and root
-HOST=''				# Hostname of the computer
+DEV=''		# The block device to install to
+USER=''		# Username of primary user
+USER_PASS=''	# Password of primary user and root
+HOST=''		# Hostname of the computer
 
 #########################
 # SET MISSING VARIABLES #
@@ -23,7 +23,7 @@ if [ -z "$DEV" ]; then
 		if [[ $REPLY =~ ^[0-9]+$ && $REPLY -ge 1 && $REPLY -le ${#DEVS[@]} ]]; then break; fi
 		echo 'Invalid option'
 	done
-	DEV=$CHOICE
+	DEV=$(grep -Po "^[^\s]+" <<< "$CHOICE")
 fi
 
 # Ask for username (if $USER isn't already set)
@@ -35,7 +35,9 @@ fi
 if [ -z "$USER_PASS" ]; then
 	while true; do
 		read -sp "Enter root/user password: " USER_PASS
+  		echo
 		read -sp "Verify root/user password: " USER_VERIFY
+  		echo
 		if [[ "$USER_PASS" == "$USER_VERIFY" ]]; then break; fi
 		echo "Passwords did not match"
 	done
