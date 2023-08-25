@@ -6,6 +6,7 @@
 
 # User defined variables. Script will ask for them interactively if set to an empty string
 DEV=''		# The block device to install to
+LUKS_PASS=''	# The password to unlock encrypted partition
 USER=''		# Username of primary user
 USER_PASS=''	# Password of primary user and root
 HOST=''		# Hostname of the computer
@@ -24,6 +25,19 @@ if [ -z "$DEV" ]; then
 		echo 'Invalid option'
 	done
 	DEV=$(grep -Po "^[^\s]+" <<< "$CHOICE")
+fi
+
+# Ask for encryption password (if $LUKS_PASS isn't already set)
+if [ -z "$LUKS_PASS" ]; then
+	while true; do
+		read -sp "Enter encryption/decryption password: " LUKS_PASS
+  		echo
+		read -sp "Verify encryption/decryption password: " LUKS_VERIFY
+  		echo
+		if [[ "$LUKS_PASS" == "$LUKS_VERIFY" ]]; then break; fi
+		echo "Passwords did not match"
+	done
+ 	unset LUKS_VERIFY
 fi
 
 # Ask for username (if $USER isn't already set)
@@ -71,11 +85,13 @@ sgdisk -n 0:0:+1536MiB -t 0:ef00 -c 0:esp $DEV
 sgdisk -n 0:0:0 -t 0:8309 -c 0:luks $DEV
 
 # Format partitions
+echo -n $LUKS_PASS | cryptsetup --type luks1 -v -y luksFormat $PART2 -
+echo -n $LUKS_PASS | cryptsetup open $PART2 root -
 mkfs.vfat -F32 -n BOOT $PART1
-mkfs.ext4 -L ROOT $PART2
+mkfs.ext4 -L ROOT /dev/mapper/root
 
 # Mount partitions
-mount $PART2 /mnt
+mount /dev/mapper/root /mnt
 mkdir -p /mnt/boot
 mount $PART1 /mnt/boot
 
@@ -114,14 +130,16 @@ tee /etc/mkinitcpio.conf <<-"END"
 	MODULES=(vmd)
 	BINARIES=()
 	FILES=()
-	HOOKS=(base udev keyboard autodetect keymap consolefont modconf kms block filesystems fsck)
+	HOOKS=(base udev keyboard autodetect keymap consolefont modconf kms block encrypt filesystems fsck)
 	END
 mkinitcpio -P
 
 # Prepare GRUB file
-awk -vFPAT='([^=]*)|("[^"]+")' -vOFS== '{
+awk -vFPAT='([^=]*)|("[^"]+")' -vOFS== -vP2ID="$(blkid -s UUID -o value <$PART2>)" '{
 	if($1=="GRUB_TIMEOUT")
 		$2="2";
+  	if($1=="GRUB_CMDLINE_LINUX_DEFAULT")
+		$2="\"cryptdevice=UUID=" P2ID ":root root=/dev/mapper/root " substr($2,2);
 	print
 }' /etc/default/grub > /etc/default/grub.new
 mv /etc/default/grub.new /etc/default/grub
@@ -143,6 +161,7 @@ EOF
 
 # Replace variable placeholders with their variable values
 sed -i "s/<\$HOST>/$HOST/g" /mnt/install.sh
+sed -i "s/<\$PART2>/${PART2//\//\\\/}/g" /mnt/install.sh
 sed -i "s/<\$USER>/$USER/g" /mnt/install.sh
 sed -i "s/<\$USER_PASS>/$USER_PASS/g" /mnt/install.sh
 
