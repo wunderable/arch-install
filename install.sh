@@ -93,11 +93,14 @@ mkfs.btrfs -L ROOT /dev/mapper/root
 # Create subvolumes
 mount /dev/mapper/root /mnt
 btrfs sub create /mnt/@root
+btrfs sub create /mnt/@home
 umount /mnt
 
 # Mount partitions
 OPTIONS='rw,noatime,compress-force=zstd:1,space_cache=v2'
 mount -o "${OPTIONS},subvol=@root" /dev/mapper/root /mnt
+mkdir -p /mnt/{boot,home}
+mount -o "${OPTIONS},subvol=@home" /dev/mapper/root /mnt/home
 mount $PART1 /mnt/boot
 
 ###########
