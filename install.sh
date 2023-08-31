@@ -85,7 +85,7 @@ sgdisk -n 0:0:+1536MiB -t 0:ef00 -c 0:esp $DEV
 sgdisk -n 0:0:0 -t 0:8309 -c 0:luks $DEV
 
 # Format partitions
-echo -n $LUKS_PASS | cryptsetup --type luks1 -v -y luksFormat $PART2 -
+echo -n $LUKS_PASS | cryptsetup --type luks1 luksFormat $PART2 -
 echo -n $LUKS_PASS | cryptsetup open $PART2 root -
 mkfs.vfat -F32 -n BOOT $PART1
 mkfs.btrfs -L ROOT /dev/mapper/root
