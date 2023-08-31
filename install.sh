@@ -5,11 +5,11 @@
 ###########################################
 
 # User defined variables. Script will ask for them interactively if set to an empty string
-DEV=''		# The block device to install to
-LUKS_PASS=''	# The password to unlock encrypted partition
-USER=''		# Username of primary user
-USER_PASS=''	# Password of primary user and root
-HOST=''		# Hostname of the computer
+DEV='/dev/nvme0n1'		# The block device to install to
+LUKS_PASS='password'	# The password to unlock encrypted partition
+USER='user'		# Username of primary user
+USER_PASS='password'	# Password of primary user and root
+HOST='host'		# Hostname of the computer
 
 #########################
 # SET MISSING VARIABLES #
@@ -93,31 +93,12 @@ mkfs.btrfs -L ROOT /dev/mapper/root
 # Create subvolumes
 mount /dev/mapper/root /mnt
 btrfs sub create /mnt/@root
-btrfs sub create /mnt/@home
-btrfs sub create /mnt/@etc
-btrfs sub create /mnt/@snapshots
-btrfs sub create /mnt/@var_log
-mkdir /mnt/@root/var
-btrfs sub create /mnt/@root/var/cache
-btrfs sub create /mnt/@root/var/tmp
-btrfs sub create /mnt/@root/tmp
 umount /mnt
 
 # Mount partitions
 OPTIONS='rw,noatime,compress-force=zstd:1,space_cache=v2'
 mount -o "${OPTIONS},subvol=@root" /dev/mapper/root /mnt
-mkdir -p /mnt/{home,etc,snapshots,var/log,boot}
-mount -o "${OPTIONS},subvol=@home" /dev/mapper/root /mnt/home
-mount -o "${OPTIONS},subvol=@etc" /dev/mapper/root /mnt/etc
-mount -o "${OPTIONS},subvol=@snapshots" /dev/mapper/root /mnt/snapshots
-mount -o "${OPTIONS},subvol=@var_log" /dev/mapper/root /mnt/var/log
 mount $PART1 /mnt/boot
-
-# Disable CoW for some directories
-chattr +C /mnt/var/cache
-chattr +C /mnt/var/tmp
-chattr +C /mnt/var/log
-chattr +C /mnt/tmp
 
 ###########
 # INSTALL #
