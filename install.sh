@@ -125,7 +125,7 @@ chattr +C /mnt/tmp
 
 # Install packages
 reflector --verbose --protocol https --latest 5 --sort rate --country 'United States' --save /etc/pacman.d/mirrorlist
-pacstrap -K /mnt base linux linux-firmware intel-ucode networkmanager vim man-db man-pages base-devel git grub efibootmgr
+pacstrap -K /mnt base linux linux-firmware intel-ucode btrfs-progs networkmanager vim man-db man-pages base-devel git grub efibootmgr
 
 # Generate fstab file
 genfstab -U /mnt >> /mnt/etc/fstab
