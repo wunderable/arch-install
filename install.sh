@@ -88,11 +88,19 @@ sgdisk -n 0:0:0 -t 0:8309 -c 0:luks $DEV
 echo -n $LUKS_PASS | cryptsetup --type luks1 -v -y luksFormat $PART2 -
 echo -n $LUKS_PASS | cryptsetup open $PART2 root -
 mkfs.vfat -F32 -n BOOT $PART1
-mkfs.ext4 -L ROOT /dev/mapper/root
+mkfs.btrfs -L ROOT /dev/mapper/root
+
+# Create subvolumes
+mount /dev/mapper/root /mnt
+btrfs sub create /mnt/@root
+btrfs sub create /mnt/@home
+umount /mnt
 
 # Mount partitions
-mount /dev/mapper/root /mnt
-mkdir -p /mnt/boot
+OPTIONS='rw,noatime,compress-force=zstd:1,space_cache=v2'
+mount -o "${OPTIONS},subvol=@root" /dev/mapper/root /mnt
+mkdir -p /mnt/{boot,home}
+mount -o "${OPTIONS},subvol=@home" /dev/mapper/root /mnt/home
 mount $PART1 /mnt/boot
 
 ###########
@@ -101,10 +109,11 @@ mount $PART1 /mnt/boot
 
 # Install packages
 reflector --verbose --protocol https --latest 5 --sort rate --country 'United States' --save /etc/pacman.d/mirrorlist
-pacstrap -K /mnt base linux linux-firmware intel-ucode networkmanager vim man-db man-pages base-devel git grub efibootmgr
+pacstrap -K /mnt base linux linux-firmware intel-ucode btrfs-progs networkmanager vim man-db man-pages base-devel git grub efibootmgr
 
 # Generate fstab file
 genfstab -U /mnt >> /mnt/etc/fstab
+sed -i "s/,subvolid=[0-9]\+//" /mnt/etc/fstab
 
 #####################################
 # CREATE SCRIPT TO BE RUN IN CHROOT #
@@ -113,6 +122,10 @@ genfstab -U /mnt >> /mnt/etc/fstab
 # Create file to be run in arch-chrooted environment
 tee /mnt/install.sh << "EOF"
 #!/bin/bash
+
+##################
+# BASIC SETTINGS #
+##################
 
 # Basic settings
 ln -sf /usr/share/zoneinfo/America/Chicago /etc/localtime
@@ -125,21 +138,29 @@ echo -e "127.0.0.1\tlocalhost\n::1\t\tlocalhost\n127.0.1.1\t<$HOST>.localdomain 
 echo 'EDITOR=vim' >> /etc/environment
 ln -s /usr/bin/vim /usr/bin/vi
 
+##############
+# MKINITCPIO #
+##############
+
 # Update hooks
 tee /etc/mkinitcpio.conf <<-"END"
 	MODULES=(vmd)
-	BINARIES=()
+	BINARIES=(/usr/bin/btrfs)
 	FILES=()
 	HOOKS=(base udev keyboard autodetect keymap consolefont modconf kms block encrypt filesystems fsck)
 	END
 mkinitcpio -P
+
+########
+# GRUB #
+########
 
 # Prepare GRUB file
 awk -vFPAT='([^=]*)|("[^"]+")' -vOFS== -vP2ID="$(blkid -s UUID -o value <$PART2>)" '{
 	if($1=="GRUB_TIMEOUT")
 		$2="2";
   	if($1=="GRUB_CMDLINE_LINUX_DEFAULT")
-		$2="\"cryptdevice=UUID=" P2ID ":root root=/dev/mapper/root " substr($2,2);
+		$2="\"cryptdevice=UUID=" P2ID ":root root=/dev/mapper/root rootflags=subvol=@root loglevel=3 quiet\"";
 	print
 }' /etc/default/grub > /etc/default/grub.new
 mv /etc/default/grub.new /etc/default/grub
@@ -149,6 +170,10 @@ grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
 
 # Update GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
+
+#########
+# USERS #
+#########
 
 # Create user and set passwords
 useradd -m -G wheel <$USER>
