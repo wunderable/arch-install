@@ -100,7 +100,7 @@ btrfs sub create /mnt/@log
 umount /mnt
 
 # Mount partitions
-OPTIONS='rw,noatime,compress-force=zstd:1,space_cache=v2'
+OPTIONS='rw,noatime,discard=async,compress-force=zstd:1,space_cache=v2'
 mount -o "${OPTIONS},subvol=@root" /dev/mapper/root /mnt
 mkdir -p /mnt/{boot,home,etc,snapshots,var/log}
 mount -o "${OPTIONS},subvol=@home" /dev/mapper/root /mnt/home
