@@ -96,11 +96,7 @@ btrfs sub create /mnt/@root
 btrfs sub create /mnt/@home
 btrfs sub create /mnt/@etc
 btrfs sub create /mnt/@snapshots
-btrfs sub create /mnt/@var_log
-mkdir /mnt/@root/var
-btrfs sub create /mnt/@root/var/cache
-btrfs sub create /mnt/@root/var/tmp
-btrfs sub create /mnt/@root/tmp
+btrfs sub create /mnt/@log
 umount /mnt
 
 # Mount partitions
@@ -110,7 +106,7 @@ mkdir -p /mnt/{boot,home,etc,snapshots,var/log}
 mount -o "${OPTIONS},subvol=@home" /dev/mapper/root /mnt/home
 mount -o "${OPTIONS},subvol=@etc" /dev/mapper/root /mnt/etc
 mount -o "${OPTIONS},subvol=@snapshots" /dev/mapper/root /mnt/snapshots
-mount -o "${OPTIONS},subvol=@var_log" /dev/mapper/root /mnt/var/log
+mount -o "${OPTIONS},subvol=@log" /dev/mapper/root /mnt/var/log
 mount $PART1 /mnt/boot
 
 ###########
