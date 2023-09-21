@@ -119,7 +119,7 @@ pacstrap -K /mnt base linux linux-firmware intel-ucode btrfs-progs networkmanage
 
 # Generate fstab file
 genfstab -U /mnt >> /mnt/etc/fstab
-sed -i "s/,subvolid=[0-9]\+//" /mnt/etc/fstab
+#sed -i "s/,subvolid=[0-9]\+//" /mnt/etc/fstab
 
 #####################################
 # CREATE SCRIPT TO BE RUN IN CHROOT #
