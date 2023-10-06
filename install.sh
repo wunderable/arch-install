@@ -96,6 +96,7 @@ btrfs sub create /mnt/@root
 btrfs sub create /mnt/@home
 btrfs sub create /mnt/@snapshots
 btrfs sub create /mnt/@log
+btrfs sub create /mnt/@swap
 mkdir /mnt/@root/var
 btrfs sub create /mnt/@root/var/cache
 btrfs sub create /mnt/@root/var/tmp
@@ -105,10 +106,11 @@ umount /mnt
 # Mount partitions
 OPTIONS='rw,noatime,discard=async,compress-force=zstd:1,space_cache=v2'
 mount -o "${OPTIONS},subvol=@root" /dev/mapper/root /mnt
-mkdir -p /mnt/{boot,home,etc,snapshots,var/log}
+mkdir -p /mnt/{boot,home,etc,snapshots,var/log,swap}
 mount -o "${OPTIONS},subvol=@home" /dev/mapper/root /mnt/home
 mount -o "${OPTIONS},subvol=@snapshots" /dev/mapper/root /mnt/snapshots
 mount -o "${OPTIONS},subvol=@log" /dev/mapper/root /mnt/var/log
+mount -o "${OPTIONS},subvol=@swap" /dev/mapper/root /mnt/swap
 mount $PART1 /mnt/boot
 
 # Disable CoW for some directories
@@ -116,6 +118,11 @@ chattr +C /mnt/var/cache
 chattr +C /mnt/var/tmp
 chattr +C /mnt/var/log
 chattr +C /mnt/tmp
+chattr +C /mnt/swap
+
+# Setup swapfile (size is RAM + square root of RAM)
+btrfs filesystem mkswapfile --size $(free -g | awk 'NR==2 {printf("%.0fg", $2+1+sqrt($2+1))}') --uuid clear /mnt/swap/swapfile
+swapon /mnt/swap/swapfile
 
 ###########
 # INSTALL #
