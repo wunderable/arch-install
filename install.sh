@@ -94,7 +94,6 @@ mkfs.btrfs -L ROOT /dev/mapper/root
 mount /dev/mapper/root /mnt
 btrfs sub create /mnt/@root
 btrfs sub create /mnt/@home
-btrfs sub create /mnt/@etc
 btrfs sub create /mnt/@snapshots
 btrfs sub create /mnt/@log
 umount /mnt
@@ -104,7 +103,6 @@ OPTIONS='rw,noatime,discard=async,compress-force=zstd:1,space_cache=v2'
 mount -o "${OPTIONS},subvol=@root" /dev/mapper/root /mnt
 mkdir -p /mnt/{boot,home,etc,snapshots,var/log}
 mount -o "${OPTIONS},subvol=@home" /dev/mapper/root /mnt/home
-mount -o "${OPTIONS},subvol=@etc" /dev/mapper/root /mnt/etc
 mount -o "${OPTIONS},subvol=@snapshots" /dev/mapper/root /mnt/snapshots
 mount -o "${OPTIONS},subvol=@log" /dev/mapper/root /mnt/var/log
 mount $PART1 /mnt/boot
