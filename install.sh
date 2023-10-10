@@ -8,7 +8,7 @@
 DEV='/dev/nvme0n1'		# The block device to install to
 LUKS_PASS='password'	# The password to unlock encrypted partition
 USER='user'		# Username of primary user
-USER_PASS='passwrod'	# Password of primary user and root
+USER_PASS='password'	# Password of primary user and root
 HOST='host'		# Hostname of the computer
 
 #########################
