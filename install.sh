@@ -178,11 +178,11 @@ mkinitcpio -P
 
 # Prepare GRUB file
 awk \
-	-vFPAT='([^=]*)|("[^"]+")' \ # fields are separated by an '=' unless it's between double quotes
-	-vOFS== \ # output field separator is an '='
-	-vPART_ID="$(blkid -s UUID -o value <$PART2>)" \ # set variable for uuid of partition 2
-	-vSWAP_ID="$(findmnt -no UUID -T /swap/swapfile)" \ # set variable for uuid of swapfile
-	-vSWAP_OFFSET="$(btrfs inspect-internal map-swapfile -r /swap/swapfile)" \ # set variable for offset of swapfile
+	-vFPAT='([^=]*)|("[^"]+")' \
+	-vOFS== \
+	-vPART_ID="$(blkid -s UUID -o value <$PART2>)" \
+	-vSWAP_ID="$(findmnt -no UUID -T /swap/swapfile)" \
+	-vSWAP_OFFSET="$(btrfs inspect-internal map-swapfile -r /swap/swapfile)" \
  	'{
 		if($1=="GRUB_TIMEOUT")
 			$2="2";
@@ -227,5 +227,6 @@ arch-chroot /mnt sh install.sh
 # Clean up and finish installation
 chown -R 1000:1000 /mnt/home/$USER
 rm /mnt/install.sh
+swapoff /mnt/swap/swapfile
 umount -R /mnt
 reboot
