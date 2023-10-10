@@ -5,11 +5,11 @@
 ###########################################
 
 # User defined variables. Script will ask for them interactively if set to an empty string
-DEV=''		# The block device to install to
-LUKS_PASS=''	# The password to unlock encrypted partition
-USER=''		# Username of primary user
-USER_PASS=''	# Password of primary user and root
-HOST=''		# Hostname of the computer
+DEV='/dev/nvme0n1'		# The block device to install to
+LUKS_PASS='password'	# The password to unlock encrypted partition
+USER='user'		# Username of primary user
+USER_PASS='passwrod'	# Password of primary user and root
+HOST='host'		# Hostname of the computer
 
 #########################
 # SET MISSING VARIABLES #
@@ -168,7 +168,7 @@ tee /etc/mkinitcpio.conf <<-"END"
 	MODULES=(vmd)
 	BINARIES=(/usr/bin/btrfs)
 	FILES=()
-	HOOKS=(base udev keyboard autodetect keymap consolefont modconf kms block encrypt filesystems fsck)
+	HOOKS=(base udev keyboard autodetect keymap consolefont modconf kms block encrypt filesystems resume fsck)
 	END
 mkinitcpio -P
 
@@ -177,13 +177,19 @@ mkinitcpio -P
 ########
 
 # Prepare GRUB file
-awk -vFPAT='([^=]*)|("[^"]+")' -vOFS== -vP2ID="$(blkid -s UUID -o value <$PART2>)" '{
-	if($1=="GRUB_TIMEOUT")
-		$2="2";
-  	if($1=="GRUB_CMDLINE_LINUX_DEFAULT")
-		$2="\"cryptdevice=UUID=" P2ID ":root root=/dev/mapper/root rootflags=subvol=@root loglevel=3 quiet\"";
-	print
-}' /etc/default/grub > /etc/default/grub.new
+awk \
+	-vFPAT='([^=]*)|("[^"]+")' \ # fields are separated by an '=' unless it's between double quotes
+	-vOFS== \ # output field separator is an '='
+	-vPART_ID="$(blkid -s UUID -o value <$PART2>)" \ # set variable for uuid of partition 2
+	-vSWAP_ID="$(findmnt -no UUID -T /swap/swapfile)" \ # set variable for uuid of swapfile
+	-vSWAP_OFFSET="$(btrfs inspect-internal map-swapfile -r /swap/swapfile)" \ # set variable for offset of swapfile
+ 	'{
+		if($1=="GRUB_TIMEOUT")
+			$2="2";
+	  	if($1=="GRUB_CMDLINE_LINUX_DEFAULT")
+			$2="\"cryptdevice=UUID=" PART_ID ":root root=/dev/mapper/root rootflags=subvol=@root resume=UUID=" SWAP_ID " resume_offset=" SWAP_OFFSET " loglevel=3 quiet\"";
+		print
+	}' /etc/default/grub > /etc/default/grub.new
 mv /etc/default/grub.new /etc/default/grub
 
 # Install GRUB
