@@ -209,6 +209,11 @@ echo <$USER>:<$USER_PASS> | chpasswd
 echo root:<$USER_PASS> | chpasswd
 sed -Ei "s/^# (%wheel ALL=\(ALL:ALL\) ALL)/\1/" /etc/sudoers
 
+########
+# Misc #
+########
+sed -Ei "s/^#(HibernateDelaySec=)$/\0130min/" /etc/systemd/sleep.conf
+
 EOF
 
 # Replace variable placeholders with their variable values
