@@ -5,11 +5,11 @@
 ###########################################
 
 # User defined variables. Script will ask for them interactively if set to an empty string
-DEV='/dev/nvme0n1'		# The block device to install to
-LUKS_PASS='password'	# The password to unlock encrypted partition
-USER='user'		# Username of primary user
-USER_PASS='password'	# Password of primary user and root
-HOST='host'		# Hostname of the computer
+DEV=''		# The block device to install to
+LUKS_PASS=''	# The password to unlock encrypted partition
+USER=''		# Username of primary user
+USER_PASS=''	# Password of primary user and root
+HOST=''		# Hostname of the computer
 
 #########################
 # SET MISSING VARIABLES #
@@ -212,7 +212,8 @@ sed -Ei "s/^# (%wheel ALL=\(ALL:ALL\) ALL)/\1/" /etc/sudoers
 ########
 # Misc #
 ########
-sed -Ei "s/^#(HibernateDelaySec=)$/\0130min/" /etc/systemd/sleep.conf
+# Hibernate 30 mins after sleeping
+sed -Ei "s/^#(HibernateDelaySec=)$/\130min/" /etc/systemd/sleep.conf
 
 EOF
 
