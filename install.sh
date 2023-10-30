@@ -96,6 +96,7 @@ btrfs sub create /mnt/@root
 btrfs sub create /mnt/@home
 btrfs sub create /mnt/@snapshots
 btrfs sub create /mnt/@log
+btrfs sub create /mnt/@swap
 mkdir /mnt/@root/var
 btrfs sub create /mnt/@root/var/cache
 btrfs sub create /mnt/@root/var/tmp
@@ -105,10 +106,11 @@ umount /mnt
 # Mount partitions
 OPTIONS='rw,noatime,discard=async,compress-force=zstd:1,space_cache=v2'
 mount -o "${OPTIONS},subvol=@root" /dev/mapper/root /mnt
-mkdir -p /mnt/{boot,home,etc,snapshots,var/log}
+mkdir -p /mnt/{boot,home,etc,snapshots,var/log,swap}
 mount -o "${OPTIONS},subvol=@home" /dev/mapper/root /mnt/home
 mount -o "${OPTIONS},subvol=@snapshots" /dev/mapper/root /mnt/snapshots
 mount -o "${OPTIONS},subvol=@log" /dev/mapper/root /mnt/var/log
+mount -o "${OPTIONS},subvol=@swap" /dev/mapper/root /mnt/swap
 mount $PART1 /mnt/boot
 
 # Disable CoW for some directories
@@ -116,6 +118,11 @@ chattr +C /mnt/var/cache
 chattr +C /mnt/var/tmp
 chattr +C /mnt/var/log
 chattr +C /mnt/tmp
+chattr +C /mnt/swap
+
+# Setup swapfile (size is RAM + square root of RAM)
+btrfs filesystem mkswapfile --size $(free -g | awk 'NR==2 {printf("%.0fg", $2+1+sqrt($2+1))}') --uuid clear /mnt/swap/swapfile
+swapon /mnt/swap/swapfile
 
 ###########
 # INSTALL #
@@ -127,7 +134,7 @@ pacstrap -K /mnt base linux linux-firmware intel-ucode btrfs-progs networkmanage
 
 # Generate fstab file
 genfstab -U /mnt >> /mnt/etc/fstab
-#sed -i "s/,subvolid=[0-9]\+//" /mnt/etc/fstab
+sed -i "s/,subvolid=[0-9]\+//" /mnt/etc/fstab
 
 #####################################
 # CREATE SCRIPT TO BE RUN IN CHROOT #
@@ -161,7 +168,7 @@ tee /etc/mkinitcpio.conf <<-"END"
 	MODULES=(vmd)
 	BINARIES=(/usr/bin/btrfs)
 	FILES=()
-	HOOKS=(base udev keyboard autodetect keymap consolefont modconf kms block encrypt filesystems fsck)
+	HOOKS=(base udev keyboard autodetect keymap consolefont modconf kms block encrypt filesystems resume fsck)
 	END
 mkinitcpio -P
 
@@ -170,13 +177,19 @@ mkinitcpio -P
 ########
 
 # Prepare GRUB file
-awk -vFPAT='([^=]*)|("[^"]+")' -vOFS== -vP2ID="$(blkid -s UUID -o value <$PART2>)" '{
-	if($1=="GRUB_TIMEOUT")
-		$2="2";
-  	if($1=="GRUB_CMDLINE_LINUX_DEFAULT")
-		$2="\"cryptdevice=UUID=" P2ID ":root root=/dev/mapper/root rootflags=subvol=@root loglevel=3 quiet\"";
-	print
-}' /etc/default/grub > /etc/default/grub.new
+awk \
+	-vFPAT='([^=]*)|("[^"]+")' \
+	-vOFS== \
+	-vPART_ID="$(blkid -s UUID -o value <$PART2>)" \
+	-vSWAP_ID="$(findmnt -no UUID -T /swap/swapfile)" \
+	-vSWAP_OFFSET="$(btrfs inspect-internal map-swapfile -r /swap/swapfile)" \
+ 	'{
+		if($1=="GRUB_TIMEOUT")
+			$2="2";
+	  	if($1=="GRUB_CMDLINE_LINUX_DEFAULT")
+			$2="\"cryptdevice=UUID=" PART_ID ":root root=/dev/mapper/root rootflags=subvol=@root resume=UUID=" SWAP_ID " resume_offset=" SWAP_OFFSET " loglevel=3 quiet\"";
+		print
+	}' /etc/default/grub > /etc/default/grub.new
 mv /etc/default/grub.new /etc/default/grub
 
 # Install GRUB
@@ -196,6 +209,12 @@ echo <$USER>:<$USER_PASS> | chpasswd
 echo root:<$USER_PASS> | chpasswd
 sed -Ei "s/^# (%wheel ALL=\(ALL:ALL\) ALL)/\1/" /etc/sudoers
 
+########
+# Misc #
+########
+# Hibernate 30 mins after sleeping
+sed -Ei "s/^#(HibernateDelaySec=)$/\130min/" /etc/systemd/sleep.conf
+
 EOF
 
 # Replace variable placeholders with their variable values
@@ -214,5 +233,6 @@ arch-chroot /mnt sh install.sh
 # Clean up and finish installation
 chown -R 1000:1000 /mnt/home/$USER
 rm /mnt/install.sh
+swapoff /mnt/swap/swapfile
 umount -R /mnt
 reboot
