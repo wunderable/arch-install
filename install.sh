@@ -74,6 +74,9 @@ PART1="${PART}1"
 PART2="${PART}2"
 unset PART
 
+# Get base directory of this project
+DIR="$( cd "$( dirname "$0" )" && pwd )"
+
 ################
 # PREPARE DISK #
 ################
@@ -136,6 +139,22 @@ pacstrap -K /mnt base linux linux-firmware intel-ucode btrfs-progs networkmanage
 genfstab -U /mnt >> /mnt/etc/fstab
 sed -i "s/,subvolid=[0-9]\+//" /mnt/etc/fstab
 
+##############
+# COPY FILES #
+##############
+
+# Copy files from github src folder to os
+mkdir -p /mnt/usr/local/src
+for FILE in $DIR/src/*; do
+	BASE=$(basename -- "$FILE")
+	cp $FILE /mnt/usr/local/src/$BASE
+	chmod +x /mnt/usr/local/src/$BASE
+done
+
+# Copy other miscellaneous files
+cp $DIR/files/aliases.sh /mnt/etc/profile.d/aliases.sh
+
+
 #####################################
 # CREATE SCRIPT TO BE RUN IN CHROOT #
 #####################################
@@ -158,6 +177,17 @@ echo '<$HOST>' > /etc/hostname
 echo -e "127.0.0.1\tlocalhost\n::1\t\tlocalhost\n127.0.1.1\t<$HOST>.localdomain <$HOST>" >> /etc/hosts
 echo 'EDITOR=vim' >> /etc/environment
 ln -s /usr/bin/vim /usr/bin/vi
+
+###################
+# CUSTOM COMMANDS #
+###################
+
+# Link custom scripts so they can be run from PATH
+for FILE in /usr/local/src/*; do
+	BASE=$(basename -- "$FILE")
+	NAME="${BASE%.*}"
+	ln -s $FILE /usr/local/bin/$NAME
+done
 
 ##############
 # MKINITCPIO #
@@ -212,6 +242,7 @@ sed -Ei "s/^# (%wheel ALL=\(ALL:ALL\) ALL)/\1/" /etc/sudoers
 ########
 # Misc #
 ########
+
 # Hibernate 30 mins after sleeping
 sed -Ei "s/^#(HibernateDelaySec=)$/\130min/" /etc/systemd/sleep.conf
 
