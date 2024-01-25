@@ -260,7 +260,8 @@ sed -Ei "s/^# (%wheel ALL=\(ALL:ALL\) ALL)/\1/" /etc/sudoers
 #######
 # YAY #
 #######
-sudo sed -i "s/#Color/Color/" /etc/pacman.conf
+sed -i "s/#Color/Color/" /etc/pacman.conf
+cd /home/<$USER>
 git clone https://aur.archlinux.org/yay.git
 cd yay
 makepkg -si
