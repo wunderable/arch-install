@@ -257,8 +257,25 @@ echo <$USER>:<$USER_PASS> | chpasswd
 echo root:<$USER_PASS> | chpasswd
 sed -Ei "s/^# (%wheel ALL=\(ALL:ALL\) ALL)/\1/" /etc/sudoers
 
+#######
+# YAY #
+#######
+sudo sed -i "s/#Color/Color/" /etc/pacman.conf
+git clone https://aur.archlinux.org/yay.git
+cd yay
+makepkg -si
+cd ..
+rm -r --interactive=never yay
+
+####################
+# SOFTWARE INSTALL #
+####################
+yay -Syu
+yay neofetch
+
+
 ########
-# Misc #
+# MISC #
 ########
 
 # Hibernate 30 mins after sleeping
