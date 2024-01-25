@@ -225,8 +225,26 @@ mv /etc/default/grub.new /etc/default/grub
 # Install GRUB
 grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
 
+# Customize GRUB
+tee -a /etc/grub.d/40_custom <<-"END"
+	menuentry 'Live ISO' --class disc --class iso {
+	    set imgdevpath='/dev/disk/by-uuid/xxxx-xxxx'
+	    set isofile='/iso/archlinux-x86_64.iso'
+	    loopback loop $isofile
+	    linux (loop)/arch/boot/x86_64/vmlinuz-linux img_dev=$imgdevpath img_loop=$isofile earlymodules=loop
+	    initrd (loop)/arch/boot/intel-ucode.img (loop)/arch/boot/x86_64/initramfs-linux.img
+	}
+	END
+mkdir /boot/iso
+sed -i "/submenu.*Advanced options/,/is_top_level=false/s/^/#REMOVE_ADVANCED_OPTIONS#/" /etc/grub.d/10_linux
+sed -i "/linux_entry.*advanced/,/done/{/done/b;s/^/#REMOVE_ADVACNED_OPTIONS#/}" /etc/grub.d/10_linux
+sed -i "s/\(menuentry '\$LABEL'\)/\1 --class driver/" /etc/grub.d/30_uefi-firmware
+sed -i "s/xxxx-xxxx/$(blkid -s UUID -o value PART1)/" /etc/grub.d/40_custom
+sed -i 's/^\s+/\t/' /etc/grub.d/40_custom
+
 # Update GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
+grup-update-iso
 
 #########
 # USERS #
