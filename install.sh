@@ -244,7 +244,7 @@ sed -i 's/^\s+/\t/' /etc/grub.d/40_custom
 
 # Update GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
-grup-update-iso
+grub-update-iso
 
 #########
 # USERS #
