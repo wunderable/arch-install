@@ -273,12 +273,12 @@ pacman --noconfirm -S python3
 #######
 
 # Config
-echo '<$USER> <$HOST> = NOPASSWD: /usr/bin/pacman\n' > /etc/sudoers.d/pacman
+echo '<$USER> ALL=(ALL:ALL) NOPASSWD: ALL' > /etc/sudoers.d/nopass
 
 # Install yay
 cd /home/<$USER>
 git clone https://aur.archlinux.org/yay.git
-chown -R <$USER>:<$USER> yay
+chown -R <$USER>:<$USER> /home/<$USER>
 cd yay
 sudo -u <$USER> makepkg -s --noconfirm
 pacman -U yay*-x86_64.pkg.tar.zst --noconfirm
@@ -288,7 +288,7 @@ rm -r --interactive=never yay
 # Install packages with yay
 sudo -u <$USER> yay --noconfirm -Syu
 sudo -u <$USER> yay --noconfirm -S neofetch
-rm /etc/sudoers.d/pacman
+rm /etc/sudoers.d/nopass
 
 ########
 # MISC #
