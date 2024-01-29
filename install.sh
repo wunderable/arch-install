@@ -257,10 +257,22 @@ echo <$USER>:<$USER_PASS> | chpasswd
 echo root:<$USER_PASS> | chpasswd
 sed -Ei "s/^# (%wheel ALL=\(ALL:ALL\) ALL)/\1/" /etc/sudoers
 
+##########
+# PACMAN #
+##########
+
+# Config
+sed -i "s/#Color/Color/" /etc/pacman.conf
+
+# Install packages with pacman
+#pacman -S package1 package2
+
+
 #######
 # YAY #
 #######
-sed -i "s/#Color/Color/" /etc/pacman.conf
+
+# Install yay
 cd /home/<$USER>
 git clone https://aur.archlinux.org/yay.git
 chown -R <$USER>:<$USER> yay
@@ -270,9 +282,7 @@ pacman -U yay*-x86_64.pkg.tar.zst --noconfirm
 cd ..
 rm -r --interactive=never yay
 
-####################
-# SOFTWARE INSTALL #
-####################
+# Install packages with yay
 echo '<$USER> <$HOST> = NOPASSWD: /usr/bin/pacman\n' > /etc/sudoers.d/pacman
 sudo -u <$USER> yay --noconfirm -Syu
 sudo -u <$USER> yay --noconfirm -S neofetch
