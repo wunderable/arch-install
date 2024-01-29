@@ -8,7 +8,7 @@ alias la..='la ..'
 alias cd..='cd ..'
 
 alias view='vim -R'
-alias bat='cat /sys/class/power_supply/BAT0/capacity'
+alias bat='printf "%s%% - %s" $(cat /sys/class/power_supply/BAT0/capacity) $(cat /sys/class/power_supply/BAT0/status)'
 alias term='ps -o "cmd=" -p $(ps -o "ppid=" -p $$)'
 
 alias date_y='date +%F' # YYYY-MM-DD
