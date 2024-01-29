@@ -239,7 +239,7 @@ mkdir /boot/iso
 sed -i "/submenu.*Advanced options/,/is_top_level=false/s/^/#REMOVE_ADVANCED_OPTIONS#/" /etc/grub.d/10_linux
 sed -i "/linux_entry.*advanced/,/done/{/done/b;s/^/#REMOVE_ADVACNED_OPTIONS#/}" /etc/grub.d/10_linux
 sed -i "s/\(menuentry '\$LABEL'\)/\1 --class driver/" /etc/grub.d/30_uefi-firmware
-sed -i "s/xxxx-xxxx/$(blkid -s UUID -o value PART1)/" /etc/grub.d/40_custom
+sed -i "s/xxxx-xxxx/$(blkid -s UUID -o value <$PART1>)/" /etc/grub.d/40_custom
 sed -i 's/^\s+/\t/' /etc/grub.d/40_custom
 
 # Update GRUB
