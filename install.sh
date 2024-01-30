@@ -229,7 +229,7 @@ grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
 tee -a /etc/grub.d/40_custom <<-"END"
 	menuentry 'Live ISO' --class disc --class iso {
 	    set imgdevpath='/dev/disk/by-uuid/xxxx-xxxx'
-	    set isofile='/iso/archlinux-x86_64.iso'
+	    set isofile='/iso/myarch.iso'
 	    loopback loop $isofile
 	    linux (loop)/arch/boot/x86_64/vmlinuz-linux img_dev=$imgdevpath img_loop=$isofile earlymodules=loop
 	    initrd (loop)/arch/boot/intel-ucode.img (loop)/arch/boot/x86_64/initramfs-linux.img
@@ -244,7 +244,7 @@ sed -i 's/^\s+/\t/' /etc/grub.d/40_custom
 
 # Update GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
-grub-update-iso
+build-myarchiso
 
 #########
 # USERS #
