@@ -74,6 +74,12 @@ PART1="${PART}1"
 PART2="${PART}2"
 unset PART
 
+# Determine which microcode, if any, to include
+CPU=$(lscpu | grep "Vendor ID" | awk '{print $3}')
+UCODE=''
+if [ "$CPU" = "GenuineIntel" ]; then UCODE='intel-ucode'; fi
+if [ "$CPU" = "AuthenticAMD" ]; then UCODE='amd-ucode'; fi
+
 # Get base directory of this project
 DIR="$( cd "$( dirname "$0" )" && pwd )"
 
@@ -133,7 +139,7 @@ swapon /mnt/swap/swapfile
 
 # Install packages
 reflector --verbose --protocol https --latest 5 --sort rate --country 'United States' --save /etc/pacman.d/mirrorlist
-pacstrap -K /mnt base linux linux-firmware intel-ucode btrfs-progs networkmanager vim man-db man-pages base-devel git grub efibootmgr
+pacstrap -K /mnt base linux linux-firmware $UCODE btrfs-progs networkmanager vim man-db man-pages base-devel git grub efibootmgr
 
 # Generate fstab file
 genfstab -U /mnt >> /mnt/etc/fstab
@@ -150,6 +156,9 @@ for FILE in $DIR/src/*; do
 	cp $FILE /mnt/usr/local/src/$BASE
 	chmod +x /mnt/usr/local/src/$BASE
 done
+
+# Add appropriate microcode to sourcecode of build-myarchiso.sh
+if [ -n "$UCODE" ]; then sed -i "s/\(' >> \/tmp\/iso\/packages.x86_64\)/\\\\n$UCODE\1/" /mnt/usr/local/src/build-myarchiso.sh
 
 # Copy other miscellaneous files
 cp $DIR/files/aliases.sh /mnt/etc/profile.d/aliases.sh
@@ -308,12 +317,18 @@ sed -i "s/<\$USER_PASS>/$USER_PASS/g" /mnt/install.sh
 # Run the chrooted install file
 arch-chroot /mnt sh install.sh
 
+########
+# MISC #
+########
+
+# Verify permisions are correct on user's home dir
+chown -R 1000:1000 /mnt/home/$USER
+
 ############
 # FINALIZE #
 ############
 
 # Clean up and finish installation
-chown -R 1000:1000 /mnt/home/$USER
 rm /mnt/install.sh
 swapoff /mnt/swap/swapfile
 umount -R /mnt
