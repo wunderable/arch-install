@@ -13,7 +13,7 @@ pacman --noconfirm -S archiso
 cp -r /usr/share/archiso/configs/baseline /tmp/iso
 mkdir -p /tmp/iso/airootfs/usr/local/bin
 mkdir -p /boot/iso
-echo -e 'btrfs-progs\nintel-ucode\niwc\nvim' >> /tmp/iso/packages.x86_64
+echo -e 'btrfs-progs\niwc\nvim' >> /tmp/iso/packages.x86_64
 cp /usr/local/src/iso-cmds.sh /tmp/iso/airootfs/usr/local/bin/cmds
 cp /usr/local/src/mfs.sh /tmp/iso/airootfs/usr/local/bin/mfs
 sed -i '/^file_permissions=(/a \ \ ["/usr/local/bin/cmds"]="0:0:755"' /tmp/iso/profiledef.sh
