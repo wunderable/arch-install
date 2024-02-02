@@ -30,9 +30,9 @@ fi
 # Ask for encryption password (if $LUKS_PASS isn't already set)
 if [ -z "$LUKS_PASS" ]; then
 	while true; do
-		read -sp "Enter encryption/decryption password: " LUKS_PASS
+		read -sp "Enter encryption password: " LUKS_PASS
   		echo
-		read -sp "Verify encryption/decryption password: " LUKS_VERIFY
+		read -sp "Verify encryption password: " LUKS_VERIFY
   		echo
 		if [[ "$LUKS_PASS" == "$LUKS_VERIFY" ]]; then break; fi
 		echo "Passwords did not match"
