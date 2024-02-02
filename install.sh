@@ -157,8 +157,9 @@ for FILE in $DIR/src/*; do
 	chmod +x /mnt/usr/local/src/$BASE
 done
 
-# Add appropriate microcode to sourcecode of build-myarchiso.sh
+# Update files with appropriate values
 if [ -n "$UCODE" ]; then sed -i "s/\(' >> \/tmp\/iso\/packages.x86_64\)/\\\\n$UCODE\1/" /mnt/usr/local/src/build-myarchiso.sh
+sed -i "s/<\$PART2>/${PART2//\//\\\/}/g" /mnt/usr/local/src/iso-mfs.sh
 
 # Copy other miscellaneous files
 cp $DIR/files/aliases.sh /mnt/etc/profile.d/aliases.sh
