@@ -75,7 +75,7 @@ PART2="${PART}2"
 unset PART
 
 # Determine which microcode, if any, to include
-CPU=$(lscpu | grep "Vendor ID" | awk '{print $3}')
+CPU=$(lscpu | grep "^Vendor ID" | awk '{print $3}')
 UCODE=''
 if [ "$CPU" = "GenuineIntel" ]; then UCODE='intel-ucode'; fi
 if [ "$CPU" = "AuthenticAMD" ]; then UCODE='amd-ucode'; fi
