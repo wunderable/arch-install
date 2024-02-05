@@ -158,7 +158,7 @@ for FILE in $DIR/src/*; do
 done
 
 # Update files with appropriate values
-if [ -n "$UCODE" ]; then sed -i "s/\(' >> \/tmp\/iso\/packages.x86_64\)/\\\\n$UCODE\1/" /mnt/usr/local/src/build-myarchiso.sh
+if [ -n "$UCODE" ]; then sed -i "s/\(' >> \/tmp\/iso\/packages.x86_64\)/\\\\n$UCODE\1/" /mnt/usr/local/src/build-myarchiso.sh; fi
 sed -i "s/<\$PART2>/${PART2//\//\\\/}/g" /mnt/usr/local/src/iso-mfs.sh
 sed -i "s/<\$OPTIONS>/$OPTIONS/g" /mnt/usr/local/src/iso-mfs.sh
 
