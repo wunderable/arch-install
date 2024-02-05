@@ -312,6 +312,7 @@ EOF
 
 # Replace variable placeholders with their variable values
 sed -i "s/<\$HOST>/$HOST/g" /mnt/install.sh
+sed -i "s/<\$PART1>/${PART1//\//\\\/}/g" /mnt/install.sh
 sed -i "s/<\$PART2>/${PART2//\//\\\/}/g" /mnt/install.sh
 sed -i "s/<\$USER>/$USER/g" /mnt/install.sh
 sed -i "s/<\$USER_PASS>/$USER_PASS/g" /mnt/install.sh
