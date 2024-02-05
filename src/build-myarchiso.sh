@@ -13,10 +13,11 @@ pacman -Syy
 pacman --noconfirm -S archiso
 
 # Start with baseline config
-cp -r /usr/share/archiso/configs/baseline /tmp/iso
+cp -r /usr/share/archiso/configs/baseline /tmp
+mv /tmp/baseline /tmp/iso
 
 # Add additional packages
-echo -e 'btrfs-progs\niwc\nvim' >> /tmp/iso/packages.x86_64
+echo -e 'btrfs-progs\niwd\nvim' >> /tmp/iso/packages.x86_64
 
 # Enable autologin
 mkdir -p /tmp/iso/airootfs/etc/systemd/system/getty@tty1.service.d
@@ -42,6 +43,7 @@ done
 sed -i 's/archiso/archiso archiso_loop_mnt/' /tmp/iso/airootfs/etc/mkinitcpio.conf.d/archiso.conf
 
 # Create the ISO
+mkdir /tmp/out
 mkarchiso -v -w /tmp/iso -o /tmp/out /tmp/iso
 
 # Cleanup of files
