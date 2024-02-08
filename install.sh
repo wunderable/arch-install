@@ -30,9 +30,9 @@ fi
 # Ask for encryption password (if $LUKS_PASS isn't already set)
 if [ -z "$LUKS_PASS" ]; then
 	while true; do
-		read -sp "Enter encryption/decryption password: " LUKS_PASS
+		read -sp "Enter encryption password: " LUKS_PASS
   		echo
-		read -sp "Verify encryption/decryption password: " LUKS_VERIFY
+		read -sp "Verify encryption password: " LUKS_VERIFY
   		echo
 		if [[ "$LUKS_PASS" == "$LUKS_VERIFY" ]]; then break; fi
 		echo "Passwords did not match"
@@ -73,6 +73,15 @@ if [[ $PART =~ [0-9]$ ]]; then PART+="p"; fi
 PART1="${PART}1"
 PART2="${PART}2"
 unset PART
+
+# Determine which microcode, if any, to include
+CPU=$(lscpu | grep "^Vendor ID" | awk '{print $3}')
+UCODE=''
+if [ "$CPU" = "GenuineIntel" ]; then UCODE='intel-ucode'; fi
+if [ "$CPU" = "AuthenticAMD" ]; then UCODE='amd-ucode'; fi
+
+# Get base directory of this project
+DIR="$( cd "$( dirname "$0" )" && pwd )"
 
 ################
 # PREPARE DISK #
@@ -130,11 +139,32 @@ swapon /mnt/swap/swapfile
 
 # Install packages
 reflector --verbose --protocol https --latest 5 --sort rate --country 'United States' --save /etc/pacman.d/mirrorlist
-pacstrap -K /mnt base linux linux-firmware intel-ucode btrfs-progs networkmanager vim man-db man-pages base-devel git grub efibootmgr
+pacstrap -K /mnt base linux linux-firmware $UCODE btrfs-progs networkmanager vim man-db man-pages base-devel git grub efibootmgr
 
 # Generate fstab file
 genfstab -U /mnt >> /mnt/etc/fstab
 sed -i "s/,subvolid=[0-9]\+//" /mnt/etc/fstab
+
+##############
+# COPY FILES #
+##############
+
+# Copy files from github src folder to os
+mkdir -p /mnt/usr/local/src
+for FILE in $DIR/src/*; do
+	BASE=$(basename -- "$FILE")
+	cp $FILE /mnt/usr/local/src/$BASE
+	chmod +x /mnt/usr/local/src/$BASE
+done
+
+# Update files with appropriate values
+if [ -n "$UCODE" ]; then sed -i "s/\(' >> \/tmp\/iso\/packages.x86_64\)/\\\\n$UCODE\1/" /mnt/usr/local/src/build-myarchiso.sh; fi
+sed -i "s/<\$PART2>/${PART2//\//\\\/}/g" /mnt/usr/local/src/iso-mfs.sh
+sed -i "s/<\$OPTIONS>/$OPTIONS/g" /mnt/usr/local/src/iso-mfs.sh
+
+# Copy other miscellaneous files
+cp $DIR/files/aliases.sh /mnt/etc/profile.d/aliases.sh
+
 
 #####################################
 # CREATE SCRIPT TO BE RUN IN CHROOT #
@@ -158,6 +188,17 @@ echo '<$HOST>' > /etc/hostname
 echo -e "127.0.0.1\tlocalhost\n::1\t\tlocalhost\n127.0.1.1\t<$HOST>.localdomain <$HOST>" >> /etc/hosts
 echo 'EDITOR=vim' >> /etc/environment
 ln -s /usr/bin/vim /usr/bin/vi
+
+###################
+# CUSTOM COMMANDS #
+###################
+
+# Link custom scripts so they can be run from PATH
+for FILE in /usr/local/src/*; do
+	BASE=$(basename -- "$FILE")
+	NAME="${BASE%.*}"
+	ln -s $FILE /usr/local/bin/$NAME
+done
 
 ##############
 # MKINITCPIO #
@@ -195,8 +236,26 @@ mv /etc/default/grub.new /etc/default/grub
 # Install GRUB
 grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
 
+# Customize GRUB
+tee -a /etc/grub.d/40_custom <<-"END"
+	menuentry 'Live ISO' --class disc --class iso {
+	    set imgdevpath='/dev/disk/by-uuid/xxxx-xxxx'
+	    set isofile='/iso/myarch.iso'
+	    loopback loop $isofile
+	    linux (loop)/arch/boot/x86_64/vmlinuz-linux img_dev=$imgdevpath img_loop=$isofile earlymodules=loop
+	    initrd (loop)/arch/boot/intel-ucode.img (loop)/arch/boot/x86_64/initramfs-linux.img
+	}
+	END
+mkdir /boot/iso
+sed -i "/submenu.*Advanced options/,/is_top_level=false/s/^/#REMOVE_ADVANCED_OPTIONS#/" /etc/grub.d/10_linux
+sed -i "/linux_entry.*advanced/,/done/{/done/b;s/^/#REMOVE_ADVACNED_OPTIONS#/}" /etc/grub.d/10_linux
+sed -i "s/\(menuentry '\$LABEL'\)/\1 --class driver/" /etc/grub.d/30_uefi-firmware
+sed -i "s/xxxx-xxxx/$(blkid -s UUID -o value <$PART1>)/" /etc/grub.d/40_custom
+sed -i 's/^\s+/\t/' /etc/grub.d/40_custom
+
 # Update GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
+build-myarchiso
 
 #########
 # USERS #
@@ -209,9 +268,43 @@ echo <$USER>:<$USER_PASS> | chpasswd
 echo root:<$USER_PASS> | chpasswd
 sed -Ei "s/^# (%wheel ALL=\(ALL:ALL\) ALL)/\1/" /etc/sudoers
 
+##########
+# PACMAN #
+##########
+
+# Config
+sed -i "s/#Color/Color/" /etc/pacman.conf
+
+# Install packages with pacman
+pacman --noconfirm -S python3
+
+
+#######
+# YAY #
+#######
+
+# Config
+echo '<$USER> ALL=(ALL:ALL) NOPASSWD: ALL' > /etc/sudoers.d/nopass
+
+# Install yay
+cd /home/<$USER>
+git clone https://aur.archlinux.org/yay.git
+chown -R <$USER>:<$USER> /home/<$USER>
+cd yay
+sudo -u <$USER> makepkg -s --noconfirm
+pacman -U yay*-x86_64.pkg.tar.zst --noconfirm
+cd ..
+rm -r --interactive=never yay
+
+# Install packages with yay
+sudo -u <$USER> yay --noconfirm -Syu
+sudo -u <$USER> yay --noconfirm -S neofetch
+rm /etc/sudoers.d/nopass
+
 ########
-# Misc #
+# MISC #
 ########
+
 # Hibernate 30 mins after sleeping
 sed -Ei "s/^#(HibernateDelaySec=)$/\130min/" /etc/systemd/sleep.conf
 
@@ -219,6 +312,7 @@ EOF
 
 # Replace variable placeholders with their variable values
 sed -i "s/<\$HOST>/$HOST/g" /mnt/install.sh
+sed -i "s/<\$PART1>/${PART1//\//\\\/}/g" /mnt/install.sh
 sed -i "s/<\$PART2>/${PART2//\//\\\/}/g" /mnt/install.sh
 sed -i "s/<\$USER>/$USER/g" /mnt/install.sh
 sed -i "s/<\$USER_PASS>/$USER_PASS/g" /mnt/install.sh
@@ -226,12 +320,18 @@ sed -i "s/<\$USER_PASS>/$USER_PASS/g" /mnt/install.sh
 # Run the chrooted install file
 arch-chroot /mnt sh install.sh
 
+########
+# MISC #
+########
+
+# Verify permisions are correct on user's home dir
+chown -R 1000:1000 /mnt/home/$USER
+
 ############
 # FINALIZE #
 ############
 
 # Clean up and finish installation
-chown -R 1000:1000 /mnt/home/$USER
 rm /mnt/install.sh
 swapoff /mnt/swap/swapfile
 umount -R /mnt
