@@ -276,7 +276,7 @@ sed -Ei "s/^# (%wheel ALL=\(ALL:ALL\) ALL)/\1/" /etc/sudoers
 sed -i "s/#Color/Color/" /etc/pacman.conf
 
 # Install packages with pacman
-pacman --noconfirm -S python3
+pacman --noconfirm -S python3 foot fish noto-fonts noto-fonts-emoji hyprland
 
 
 #######
@@ -298,7 +298,7 @@ rm -r --interactive=never yay
 
 # Install packages with yay
 sudo -u <$USER> yay --noconfirm -Syu
-sudo -u <$USER> yay --noconfirm -S neofetch
+sudo -u <$USER> yay --noconfirm -S spotify vivaldi
 rm /etc/sudoers.d/nopass
 
 ########
