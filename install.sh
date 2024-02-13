@@ -276,8 +276,25 @@ sed -Ei "s/^# (%wheel ALL=\(ALL:ALL\) ALL)/\1/" /etc/sudoers
 sed -i "s/#Color/Color/" /etc/pacman.conf
 
 # Install packages with pacman
-pacman --noconfirm -S python3 foot fish noto-fonts noto-fonts-emoji hyprland
+pacman --noconfirm -S python3 foot fish noto-fonts noto-fonts-emoji hyprland neofetch
 
+############
+# NEOFETCH #
+############
+
+# Create config file for term alias
+mkdir -p /home/<$USER>/.config/neofetch
+tee /home/<$USER>/.config/neofetch/term.conf <<-"END"
+	print_info() {
+		info "Terminal" term
+		info "Shell" shell
+	}
+
+	shell_path="on"
+	shell_version="on"
+	image_backend="off"
+	stdout="off"
+	END
 
 #######
 # YAY #
