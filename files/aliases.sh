@@ -9,7 +9,7 @@ alias cd..='cd ..'
 
 alias view='vim -R'
 alias bat='printf "%s%% - %s\n" $(cat /sys/class/power_supply/BAT0/capacity) $(cat /sys/class/power_supply/BAT0/status)'
-alias term='ps -o "cmd=" -p $(ps -o "ppid=" -p $$)'
+alias term='neofetch --config ~/.config/neofetch/term.conf'
 
 alias date_y='date +%F' # YYYY-MM-DD
 alias date_t='date +%T' # HH:MM:SS
