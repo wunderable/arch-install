@@ -186,8 +186,17 @@ echo 'LANG=en_US.UTF-8' > /etc/locale.conf
 locale-gen
 echo '<$HOST>' > /etc/hostname
 echo -e "127.0.0.1\tlocalhost\n::1\t\tlocalhost\n127.0.1.1\t<$HOST>.localdomain <$HOST>" >> /etc/hosts
-echo 'EDITOR=vim' >> /etc/environment
 ln -s /usr/bin/vim /usr/bin/vi
+
+##############
+# ENVIORMENT #
+##############
+
+tee -a /etc/enviornment <<-"END"
+	EDITOR=vim
+ 	XDG_CONFIG_HOME="$HOME/.config"
+  	LC_COLLATE=C
+   	END
 
 ###################
 # CUSTOM COMMANDS #
