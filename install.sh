@@ -196,7 +196,7 @@ tee -a /etc/enviornment <<-"END"
 	EDITOR=vim
  	XDG_CONFIG_HOME="$HOME/.config"
   	LC_COLLATE=C
-   	END
+END
 
 ###################
 # CUSTOM COMMANDS #
@@ -219,7 +219,7 @@ tee /etc/mkinitcpio.conf <<-"END"
 	BINARIES=(/usr/bin/btrfs)
 	FILES=()
 	HOOKS=(base udev keyboard autodetect keymap consolefont modconf kms block encrypt filesystems resume fsck)
-	END
+END
 mkinitcpio -P
 
 ########
