@@ -195,7 +195,7 @@ ln -s /usr/bin/vim /usr/bin/vi
 tee -a /etc/enviornment <<-"END"
 	EDITOR=vim
  	XDG_CONFIG_HOME="$HOME/.config"
-  	LC_COLLATE=C
+	LC_COLLATE=C
 END
 
 ###################
@@ -295,15 +295,14 @@ pacman --noconfirm -S python3 foot fish noto-fonts noto-fonts-emoji hyprland neo
 mkdir -p /home/<$USER>/.config/neofetch
 tee /home/<$USER>/.config/neofetch/term.conf <<-"END"
 	print_info() {
-		info "Terminal" term
-		info "Shell" shell
+	    info "Terminal" term
+	    info "Shell" shell
 	}
-
 	shell_path="on"
 	shell_version="on"
 	image_backend="off"
 	stdout="off"
-	END
+END
 
 #######
 # YAY #
