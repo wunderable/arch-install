@@ -333,6 +333,9 @@ rm /etc/sudoers.d/nopass
 # Hibernate 30 mins after sleeping
 sed -Ei "s/^#(HibernateDelaySec=)$/\130min/" /etc/systemd/sleep.conf
 
+# Enable NetworkManager at startup
+systemctl enable NetworkManager
+
 EOF
 
 # Replace variable placeholders with their variable values
