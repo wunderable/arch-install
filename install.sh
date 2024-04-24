@@ -145,9 +145,9 @@ pacstrap -K /mnt base linux linux-firmware $UCODE btrfs-progs networkmanager vim
 genfstab -U /mnt >> /mnt/etc/fstab
 sed -i "s/,subvolid=[0-9]\+//" /mnt/etc/fstab
 
-##############
-# COPY FILES #
-##############
+###################
+# CUSTOM PROGRAMS #
+###################
 
 # Copy files from github src folder to os
 mkdir -p /mnt/usr/local/src
@@ -161,10 +161,6 @@ done
 if [ -n "$UCODE" ]; then sed -i "s/\(' >> \/tmp\/iso\/packages.x86_64\)/\\\\n$UCODE\1/" /mnt/usr/local/src/build-myarchiso.sh; fi
 sed -i "s/<\$PART2>/${PART2//\//\\\/}/g" /mnt/usr/local/src/iso-mfs.sh
 sed -i "s/<\$OPTIONS>/$OPTIONS/g" /mnt/usr/local/src/iso-mfs.sh
-
-# Copy other miscellaneous files
-cp $DIR/files/aliases.sh /mnt/etc/profile.d/aliases.sh
-
 
 #####################################
 # CREATE SCRIPT TO BE RUN IN CHROOT #
@@ -347,6 +343,19 @@ sed -i "s/<\$USER_PASS>/$USER_PASS/g" /mnt/install.sh
 
 # Run the chrooted install file
 arch-chroot /mnt sh install.sh
+
+##############
+# COPY FILES #
+##############
+
+# Fish setup
+cp $DIR/fish/functions/*.fish /mnt/etc/fish/functions
+
+# Hyprland setup
+cp $DIR/hyprland/hyprland.conf /mnt/home/$USER/.config/hypr
+
+# Copy other miscellaneous files
+cp $DIR/files/aliases.sh /mnt/etc/profile.d/aliases.sh
 
 ########
 # MISC #
