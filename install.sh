@@ -281,7 +281,7 @@ sed -Ei "s/^# (%wheel ALL=\(ALL:ALL\) ALL)/\1/" /etc/sudoers
 sed -i "s/#Color/Color/" /etc/pacman.conf
 
 # Install packages with pacman
-pacman --noconfirm -S python3 python-pip kitty zsh otf-commit-mono-nerd ttf-noto-nerd hyprland neofetch upower gtk4 vivaldi vivaldi-ffmpeg-codecs #albert
+pacman --noconfirm -S python3 python-numpy kitty zsh otf-commit-mono-nerd ttf-noto-nerd hyprland neofetch upower gtk4 vivaldi vivaldi-ffmpeg-codecs #albert
 
 ############
 # NEOFETCH #
