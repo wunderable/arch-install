@@ -5,7 +5,6 @@ import sys
 import os.path
 import argparse
 import subprocess
-import numpy as np
 
 # Formatter for argparse that preservers new lines if text begins with 'R|'
 class MyFormatter(argparse.HelpFormatter):
