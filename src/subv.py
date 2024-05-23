@@ -5,6 +5,8 @@ import sys
 import os.path
 import argparse
 import subprocess
+import configparser
+from datetime import datetime
 
 fields = [
           ('i', 'id'),
@@ -15,6 +17,8 @@ fields = [
           ('r', 'permissions (read-write or read-only)'),
           ('t', 'type (subvolume or snapshot)')
         ]
+
+config_path = '$HOME/.config/subv/sources.cfg'
 
 
 ###### Formatter for argparse that preservers new lines if text begins with 'R|'
@@ -35,17 +39,33 @@ def get_args(self):
             field_reg = '^[' + field_str + ']+$'
             if args.fields != None and not re.match(field_reg, args.fields):
                 self.subs['list'].error('Unknown value [' + args.fields + '] for FIELDS')
-            if args.sort != None and not re.match(field_reg, args.sort):
-                self.subs['list'].error('Unknown value [' + args.sort + '] for SORT')
+            if args.order != None and not re.match(field_reg, args.order):
+                self.subs['list'].error('Unknown value [' + args.order + '] for ORDER')
             if args.all_fields:
                 args.fields = field_str
         case 'snap':
-            if len(args.sources) == 1 and re.match("^[hlr]+$", args.sources[0]):
-                print('abbrevs are good')
-                return
-            for s in args.sources:
-                if not s in ['home', 'logs', 'root']:
-                    self.subs['snap'].error('Unknown source [' + s + ']')
+            names, abbrevs = read_config()
+            abbrev_reg = '^['
+            for a in abbrevs: abbrev_reg += a[0]
+            abbrev_reg += ']+$'
+            for i,s in enumerate(args.sources):
+                found_name = False
+                for n in names:
+                    if s == n[0]:
+                        args.sources[i] = n[1]
+                        found_name = True
+                        break
+                if found_name: continue
+                if re.match(abbrev_reg, s):
+                    for l in s:
+                        for a in abbrevs:
+                            if l == a[0]:
+                                args.sources.append(a[1])
+                                break
+                    args.sources[i] = None
+            args.sources = [s for s in args.sources if s is not None]
+            args.sources = list(set(args.sources))
+            args.names = names
     return args
 
 
@@ -67,9 +87,10 @@ def get_parser():
     listp_help = 'R|FIELDS is a series of letters that refer to the fields that will be displayed and in what order. Default is \'il\'. Fields can be:'
     for f in fields: listp_help += '\n  ' + f[0] + '  ' + f[1]
     listp.add_argument('path', nargs='?', default='/', help='list all subvolumes under PATH. Default is /')
-    listp.add_argument('-s', '--sort', default='i', help='SORT is a series of letters indicating which fields to sort by. Default is \'i\'')
-    listp.add_argument('-a', '--all-fields', action='store_true', help='if present, all fields will be displayed in their default order. Overrides FIELDS if set')
+    listp.add_argument('-o', '--order', default='i', help='ORDER is a series of letters indicating which fields to sort by. Default is \'i\'')
+    listp.add_argument('-a', '--all-fields', action='store_true', help='all fields will be displayed in their default order. Overrides FIELDS if set')
     listp.add_argument('-f', '--fields', default='il', help=listp_help)
+    listp.add_argument('-x', '--skip-path-filter', action='store_true', help='don\'t filter results by path')
     listp_read = listp.add_mutually_exclusive_group()
     listp_read.add_argument('-r', '--read-only', action='store_true', help='filter to show subvolumes that are read-only')
     listp_read.add_argument('-R', '--read-write', action='store_true', help='filter to show subvolumes that are NOT read-only')
@@ -77,34 +98,41 @@ def get_parser():
     listp_mount.add_argument('-m', '--mounted', action='store_true', help='filter to show subvolumes that are explicitly mounted')
     listp_mount.add_argument('-M', '--unmounted', action='store_true', help='filter to show subvolumes that are NOT explicitly mounted')
     listp_snap = listp.add_mutually_exclusive_group()
-    listp_snap.add_argument('-t', '--snapshot', action='store_true', help='filter to show subvolumes that are snapshots')
-    listp_snap.add_argument('-T', '--subvolume', action='store_true', help='filter to show subvolumes that are NOT snapshots')
+    listp_snap.add_argument('-s', '--snapshot', action='store_true', help='filter to show subvolumes that are snapshots')
+    listp_snap.add_argument('-S', '--subvolume', action='store_true', help='filter to show subvolumes that are NOT snapshots')
 
     # Snap subparser
     snapp = subs.add_parser('snap',
                             help='create a snapshot of the specified subvolumes',
-                            description='Creates a snapshot of all specified subvolumes and saves it to /.snapshots',
+                            description='Creates a snapshot of all specified subvolumes and saves it to /snapshots/YYYYMMDD_HHMMSS/',
                             formatter_class=RawFormatter)
     main.subs['snap'] = snapp
-    snapp.add_argument('-n', '--name', help='append NAME to the snapshot\'s filename')
-    snapp.add_argument('sources', nargs='*',#argparse.REMAINDER,
-                       help='R|the source locations to create a snapshot of. Can either be a single argument made up of only valid letter abbreviations or a list of names separated by a space\n  r  root    /\n  h  home    /home\n  l  logs    /var/logs')
+    snapp.add_argument('-r', '--read-only', action='store_true', help='create the snapshot(s) as read only')
+    snapp.add_argument('-n', '--name', help='append NAME to the snapshot\'s datetime folder')
+    snapp.add_argument('sources', nargs='+', help='space-separated locations to create a snapshot of. It first tries to match source to a name from the config file [names] section, it then tries to match source against abbrev(s) from the [abbrevs] section, then finally treats source as a path. If a location is found in the [names] section of the config file, the snapshot will use that name, otherwise it will use the location\'s name with /\'s replaced with _\'s. i.e. if the config file [names] section contains the line "log = /var/log", the snapshot will be placed in /snapshots/20240523_161238/log, otherwise it will be placed in /snapshots/20240523_161238/_var_log')
 
     # Add a function that can be called on our instansiated objects
     argparse.ArgumentParser.get_args = get_args
     return main
 
 
-###### Not implemented
+###### Gets a list of user defined sources from a config file
 def read_config():
+    config_file = os.path.expandvars(config_path)
+    if not os.path.isfile(config_file): return [],[]
     try:
-        file = open(os.path.expandvars("$HOME/.config/subv/sources.cfg"), "r")
-        for line in file:
-            print(line)
+        names = []
+        abbrevs = []
+        config = configparser.ConfigParser()
+        config.read(config_file)
+        for key in config['names']:
+            names.append((key, config['names'][key]))
+        for key in config['abbrevs']:
+            abbrevs.append((key, config['abbrevs'][key]))
+        return names, abbrevs
     except:
-        print('ERROR: There was an issue reading $HOME/.config/subv/sources.cfg', file=sys.stderr)
-        exit(1)
-    return True
+        print('WARNING: There was an issue reading ' + config_path, file=sys.stderr)
+        return [],[]
 
 
 ###### A helper function to execute a command and return it's results in a string
@@ -212,7 +240,7 @@ def print_2d(arr, spaces=1):
 ###### Display list of subvolumes
 def exec_list(args):
     subs = get_subvolumes(args.path)
-    subs = [s for s in subs if s[3].startswith(args.path)]
+    if not args.skip_path_filter: subs = [s for s in subs if s[3].startswith(args.path)]
     if args.read_only: subs = [s for s in subs if s[5] == 'r']
     if args.read_write: subs = [s for s in subs if s[5] != 'r']
     if args.mounted: subs = [s for s in subs if s[4] == 'yes']
@@ -221,8 +249,8 @@ def exec_list(args):
     if args.subvolume: subs = [s for s in subs if s[6] == 'subvolume']
     for i,f in enumerate(fields):
         args.fields = args.fields.replace(f[0], str(i))
-        args.sort = args.sort.replace(f[0], str(i))
-    for s in reversed(args.sort):
+        args.order = args.order.replace(f[0], str(i))
+    for s in reversed(args.order):
         subs.sort(key = lambda x: x[int(s)])
     out = []
     for s in subs:
@@ -235,7 +263,11 @@ def exec_list(args):
 
 ###### Create snapshot(s)
 def exec_snap(args):
-    print('snap: ', end=''); print(args)
+    dir_name = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+    if args.name != None: dir_name += '_' + args.name
+    print(dir_name)
+    for s in args.sources:
+        print(s)
     exit(0)
 
 
