@@ -1,10 +1,12 @@
 alias ls='ls --color=auto'
-alias ll='ls -hAl'
 alias la='ls -a'
+alias ll='ls -hAl'
+alias lt='ls -hAlt'
 
 alias ls..='ls ..'
-alias ll..='ll ..'
 alias la..='la ..'
+alias ll..='ll ..'
+alias lt..='lt ..'
 alias cd..='cd ..'
 
 alias view='vim -R'
