@@ -15,7 +15,7 @@ fields = [
           ('l', 'location'),
           ('m', 'explictly mounted (yes or no)'),
           ('r', 'permissions (read-write or read-only)'),
-          ('t', 'type (subvolume or snapshot)')
+          ('s', 'type (subvolume or snapshot)')
         ]
 
 config_path = '$HOME/.config/subv/sources.cfg'
@@ -34,13 +34,15 @@ def get_args(self):
     args = self.parse_args()
     match(args.cmd):
         case 'list':
+            if not os.path.exists(args.path):
+                self.subs['list'].error(f'path [{args.path}] not found')
             field_str = ''
             for f in fields: field_str += f[0]
-            field_reg = '^[' + field_str + ']+$'
-            if args.fields != None and not re.match(field_reg, args.fields):
-                self.subs['list'].error('Unknown value [' + args.fields + '] for FIELDS')
-            if args.order != None and not re.match(field_reg, args.order):
-                self.subs['list'].error('Unknown value [' + args.order + '] for ORDER')
+            field_reg = f'^[{field_str}]+$'
+            if not re.match(field_reg, args.fields):
+                self.subs['list'].error(f'unknown value [{args.fields}] for FIELDS')
+            if not re.match(field_reg, args.order):
+                self.subs['list'].error(f'unknown value [{args.order}] for ORDER')
             if args.all_fields:
                 args.fields = field_str
         case 'snap':
@@ -66,6 +68,11 @@ def get_args(self):
             args.sources = [s for s in args.sources if s is not None]
             args.sources = list(set(args.sources))
             args.names = names
+            for s in args.sources:
+                if not os.path.exists(s):
+                    self.subs['snap'].error(f'source [{s}] not found')
+                if not execute(f'ls -id {s}').split()[0] == '256':
+                    self.subs['snap'].error(f'source [{s}] is not btrfs subvolume')
     return args
 
 
@@ -85,18 +92,18 @@ def get_parser():
                             formatter_class=RawFormatter)
     main.subs['list'] = listp
     listp_help = 'R|FIELDS is a series of letters that refer to the fields that will be displayed and in what order. Default is \'il\'. Fields can be:'
-    for f in fields: listp_help += '\n  ' + f[0] + '  ' + f[1]
+    for f in fields: listp_help += f'\n  {f[0]}  {f[1]}'
     listp.add_argument('path', nargs='?', default='/', help='list all subvolumes under PATH. Default is /')
     listp.add_argument('-o', '--order', default='i', help='ORDER is a series of letters indicating which fields to sort by. Default is \'i\'')
     listp.add_argument('-a', '--all-fields', action='store_true', help='all fields will be displayed in their default order. Overrides FIELDS if set')
     listp.add_argument('-f', '--fields', default='il', help=listp_help)
-    listp.add_argument('-x', '--skip-path-filter', action='store_true', help='don\'t filter results by path')
-    listp_read = listp.add_mutually_exclusive_group()
-    listp_read.add_argument('-r', '--read-only', action='store_true', help='filter to show subvolumes that are read-only')
-    listp_read.add_argument('-R', '--read-write', action='store_true', help='filter to show subvolumes that are NOT read-only')
+    listp.add_argument('-u', '--skip-path-filter', action='store_true', help='don\'t filter results by path')
     listp_mount = listp.add_mutually_exclusive_group()
     listp_mount.add_argument('-m', '--mounted', action='store_true', help='filter to show subvolumes that are explicitly mounted')
     listp_mount.add_argument('-M', '--unmounted', action='store_true', help='filter to show subvolumes that are NOT explicitly mounted')
+    listp_read = listp.add_mutually_exclusive_group()
+    listp_read.add_argument('-r', '--read-only', action='store_true', help='filter to show subvolumes that are read-only')
+    listp_read.add_argument('-R', '--read-write', action='store_true', help='filter to show subvolumes that are NOT read-only')
     listp_snap = listp.add_mutually_exclusive_group()
     listp_snap.add_argument('-s', '--snapshot', action='store_true', help='filter to show subvolumes that are snapshots')
     listp_snap.add_argument('-S', '--subvolume', action='store_true', help='filter to show subvolumes that are NOT snapshots')
@@ -131,7 +138,7 @@ def read_config():
             abbrevs.append((key, config['abbrevs'][key]))
         return names, abbrevs
     except:
-        print('WARNING: There was an issue reading ' + config_path, file=sys.stderr)
+        print(f'WARNING: There was an issue reading {config_path}', file=sys.stderr)
         return [],[]
 
 
@@ -142,7 +149,7 @@ def execute(cmd):
 
 ###### Returns a list of subvolumes as a tuple consisting of id, parent's id, and name
 def get_subs(path):
-    results = execute('sudo btrfs subvolume list -a ' + path)
+    results = execute(f'sudo btrfs subvolume list -a {path}')
     subvolumes = []
     for line in results.splitlines():
         field = line.split()
@@ -153,7 +160,7 @@ def get_subs(path):
 
 ###### Returns a list of subvolume ids for subvolumes that are snapshots
 def get_snaps(path):
-    results = execute('sudo btrfs subvolume list -s ' + path)
+    results = execute(f'sudo btrfs subvolume list -s {path}')
     snaps = []
     for line in results.splitlines():
         field = line.split()
@@ -163,7 +170,7 @@ def get_snaps(path):
 
 ###### Returns a list of subvolume ids for subvolumes that are read-only
 def get_ros(path):
-    results = execute('sudo btrfs subvolume list -r ' + path)
+    results = execute(f'sudo btrfs subvolume list -r {path}')
     ros = []
     for line in results.splitlines():
         field = line.split()
@@ -263,11 +270,21 @@ def exec_list(args):
 
 ###### Create snapshot(s)
 def exec_snap(args):
-    dir_name = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
-    if args.name != None: dir_name += '_' + args.name
-    print(dir_name)
-    for s in args.sources:
-        print(s)
+    now = datetime.now()
+    dest_dir = '/snapshots/' + now.strftime('%Y-%m-%d')
+    ext = now.strftime('%Y%m%d.%H%M%S')
+    if args.name != None: dest_dir += '_' + args.name
+    execute(f'sudo mkdir -p {dest_dir}')
+    r = '-r' if args.read_only else ''
+    for src in args.sources:
+        dest_name = src.replace('_', '__')
+        dest_name = dest_name.replace('/', '_')
+        for n in args.names:
+            if src == n[1]:
+                dest_name = n[0]
+                break
+        dest = f'{dest_dir}/{dest_name}.{ext}'
+        execute(f'sudo btrfs subvolume snapshot {r} {src} {dest}')
     exit(0)
 
 
