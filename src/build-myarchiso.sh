@@ -32,6 +32,7 @@ mkdir -p /tmp/iso/airootfs/usr/local/bin
 cp /usr/local/src/iso-cmds.sh /tmp/iso/airootfs/usr/local/bin/cmds
 cp /usr/local/src/iso-mfs.sh /tmp/iso/airootfs/usr/local/bin/mfs
 cp /usr/local/src/subv.py /tmp/iso/airootfs/usr/local/bin/subv
+cp /usr/local/src/s.sh /tmp/iso/airootfs/usr/local/bin/s
 
 # Set permissions for our scripts
 for CMD in /tmp/iso/airootfs/usr/local/bin/*; do
