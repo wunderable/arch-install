@@ -356,9 +356,6 @@ arch-chroot /mnt sh install.sh
 # COPY FILES #
 ##############
 
-# Fish setup
-cp $DIR/fish/functions/*.fish /mnt/etc/fish/functions
-
 # Hyprland setup
 cp $DIR/hyprland/hyprland.conf /mnt/home/$USER/.config/hypr
 
