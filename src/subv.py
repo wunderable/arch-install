@@ -50,6 +50,7 @@ def get_args(self):
             abbrev_reg = '^['
             for a in abbrevs: abbrev_reg += a[0]
             abbrev_reg += ']+$'
+            if len(abbrevs) < 1: abbrev_reg = '^$'
             for i,s in enumerate(args.sources):
                 found_name = False
                 for n in names:
