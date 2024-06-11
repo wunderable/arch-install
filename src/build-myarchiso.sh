@@ -49,7 +49,7 @@ mkarchiso -v -w /tmp/iso -o /tmp/out /tmp/iso
 
 # Cleanup of files
 rm -rf /tmp/iso
-[ ! -e /boot/iso/arch_boot.iso ] || rm /boot/iso/arch_boot.iso
+[ ! -e /boot/iso/myarch.iso ] || rm /boot/iso/myarch.iso
 mkdir -p /boot/iso
-mv /tmp/out/archlinux-*.iso /boot/iso/arch_boot.iso
+mv /tmp/out/archlinux-*.iso /boot/iso/myarch.iso
 rmdir /tmp/out
