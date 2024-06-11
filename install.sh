@@ -323,6 +323,14 @@ sudo -u <$USER> yay --noconfirm -S visual-studio-code-bin
 rm /etc/sudoers.d/nopass
 
 ########
+# SUBV #
+########
+
+# Create sources.cfg file
+mkdir -p /home/<$USER>/.config/subv
+echo -e '[names]\nroot = /\nhome = /home\n\n[abbrevs]\nr = /\nh = /home' > /home/<$USER>/.config/subv/sources.cfg
+
+########
 # MISC #
 ########
 
