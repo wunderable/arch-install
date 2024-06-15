@@ -1,4 +1,8 @@
 # If not running interactively, don't do anything
 [[ $- != *i* ]] && return
 
-PS1='[\u@\h \W]\$ '
+# Source aliases if they exist
+source /etc/profile.d/aliases.sh || true
+
+# Set prompt
+PS1='\u@\h:\w \$ '
