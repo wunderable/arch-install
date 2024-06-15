@@ -281,7 +281,7 @@ sed -Ei "s/^# (%wheel ALL=\(ALL:ALL\) ALL)/\1/" /etc/sudoers
 sed -i "s/#Color/Color/" /etc/pacman.conf
 
 # Install packages with pacman
-pacman --noconfirm -S python3 kitty zsh otf-commit-mono-nerd ttf-noto-nerd hyprland neofetch upower gtk4 vivaldi vivaldi-ffmpeg-codecs spotify-launcher #albert
+pacman --noconfirm -S python3 kitty zsh otf-commit-mono-nerd ttf-noto-nerd hyprland neofetch upower gtk4 vivaldi vivaldi-ffmpeg-codecs spotify-launcher tuigreet
 
 ############
 # NEOFETCH #
@@ -328,7 +328,28 @@ rm /etc/sudoers.d/nopass
 
 # Create sources.cfg file
 mkdir -p /home/<$USER>/.config/subv
-echo -e '[names]\nroot = /\nhome = /home\n\n[abbrevs]\nr = /\nh = /home' > /home/<$USER>/.config/subv/sources.cfg
+tee /home/<$USER>/.config/subv/sources.cfg <<-"END"
+	[names]
+ 	root = /
+  	home = /home
+
+   	[abbrevs]
+    	r = /
+     	h = /home
+END
+
+#############################
+# GREETER / DISPLAY MANAGER #
+#############################
+
+systemctl enable greetd
+tee /etc/greetd/config.toml <<-"END"
+	[terminal]
+ 	vt = 1
+
+	[default_session]
+ 	command = "tuigreet --time --time-format '%A, %B %-D %I:%M' --remember --remember-session --user-menu --cmd 'Hyprland > /dev/null' --theme 'time=cyan;border=cyan;title=magenta;button=yellow'"
+  END
 
 ########
 # MISC #
