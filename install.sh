@@ -192,7 +192,7 @@ ln -s /usr/bin/vim /usr/bin/vi
 
 tee -a /etc/enviornment <<-"END"
 	EDITOR=vim
- 	XDG_CONFIG_HOME="$HOME/.config"
+	XDG_CONFIG_HOME="$HOME/.config"
 	LC_COLLATE=C
 END
 
@@ -231,10 +231,10 @@ awk \
 	-vPART_ID="$(blkid -s UUID -o value <$PART2>)" \
 	-vSWAP_ID="$(findmnt -no UUID -T /swap/swapfile)" \
 	-vSWAP_OFFSET="$(btrfs inspect-internal map-swapfile -r /swap/swapfile)" \
- 	'{
+	'{
 		if($1=="GRUB_TIMEOUT")
 			$2="2";
-	  	if($1=="GRUB_CMDLINE_LINUX_DEFAULT")
+		if($1=="GRUB_CMDLINE_LINUX_DEFAULT")
 			$2="\"cryptdevice=UUID=" PART_ID ":root root=/dev/mapper/root rootflags=subvol=@root resume=UUID=" SWAP_ID " resume_offset=" SWAP_OFFSET " loglevel=3 quiet\"";
 		print
 	}' /etc/default/grub > /etc/default/grub.new
