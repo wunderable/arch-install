@@ -381,7 +381,7 @@ arch-chroot /mnt sh install.sh
 ##############
 
 # Hyprland setup
-cp $DIR/hyprland/hyprland.conf /mnt/home/$USER/.config/hypr
+cp $DIR/files/hypr/hyprland.conf /mnt/home/$USER/.config/hypr
 
 # Copy other miscellaneous files
 cp $DIR/files/aliases.sh /mnt/etc/profile.d/aliases.sh
