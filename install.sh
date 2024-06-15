@@ -281,7 +281,7 @@ sed -Ei "s/^# (%wheel ALL=\(ALL:ALL\) ALL)/\1/" /etc/sudoers
 sed -i "s/#Color/Color/" /etc/pacman.conf
 
 # Install packages with pacman
-pacman --noconfirm -S python3 kitty zsh otf-commit-mono-nerd ttf-noto-nerd hyprland neofetch upower gtk4 vivaldi vivaldi-ffmpeg-codecs spotify-launcher tuigreet greetd
+pacman --noconfirm -S python3 kitty zsh otf-commit-mono-nerd ttf-noto-nerd hyprland neofetch upower gtk4 vivaldi vivaldi-ffmpeg-codecs spotify-launcher greetd greetd-tuigreet
 
 ############
 # NEOFETCH #
@@ -348,7 +348,7 @@ tee /etc/greetd/config.toml <<-"END"
  	vt = 1
 
 	[default_session]
- 	command = "tuigreet --time --time-format '%A, %B %-D %I:%M' --remember --remember-session --user-menu --cmd 'Hyprland > /dev/null' --theme 'time=cyan;border=cyan;title=magenta;button=yellow'"
+ 	command = "tuigreet --time --time-format '%A, %B %-D %I:%M' --remember --user-menu --cmd 'Hyprland > /dev/null' --theme 'time=cyan;border=cyan;title=magenta;button=yellow'"
   	user = "greeter"
   END
 
