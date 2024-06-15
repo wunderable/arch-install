@@ -283,7 +283,7 @@ sed -Ei "s/^# (%wheel ALL=\(ALL:ALL\) ALL)/\1/" /etc/sudoers
 sed -i "s/#Color/Color/" /etc/pacman.conf
 
 # Install packages with pacman
-pacman --noconfirm -S python3 kitty zsh otf-commit-mono-nerd ttf-noto-nerd hyprland neofetch upower gtk4 vivaldi vivaldi-ffmpeg-codecs spotify-launcher greetd greetd-tuigreet
+pacman --noconfirm -S python3 kitty zsh otf-commit-mono-nerd ttf-noto-nerd hyprland neofetch upower gtk4 vivaldi vivaldi-ffmpeg-codecs spotify-launcher greetd greetd-tuigreet pipewire wireplumber
 
 ############
 # NEOFETCH #
@@ -386,6 +386,7 @@ cp $DIR/files/hypr/hyprland.conf /mnt/home/$USER/.config/hypr/hyprland.conf
 
 # Copy other miscellaneous files
 cp $DIR/files/aliases.sh /mnt/etc/profile.d/aliases.sh
+cp $DIR/files/.bashrc /mnt/home/$USER/.bashrc
 
 ########
 # MISC #
