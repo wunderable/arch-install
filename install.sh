@@ -83,6 +83,9 @@ if [ "$CPU" = "AuthenticAMD" ]; then UCODE='amd-ucode'; fi
 # Get base directory of this project
 DIR="$( cd "$( dirname "$0" )" && pwd )"
 
+# Set mounting options
+OPTIONS='rw,noatime,discard=async,compress-force=zstd:1,space_cache=v2'
+
 ################
 # PREPARE DISK #
 ################
@@ -113,7 +116,6 @@ btrfs sub create /mnt/@root/tmp
 umount /mnt
 
 # Mount partitions
-OPTIONS='rw,noatime,discard=async,compress-force=zstd:1,space_cache=v2'
 mount -o "${OPTIONS},subvol=@root" /dev/mapper/root /mnt
 mkdir -p /mnt/{boot,home,etc,snapshots,var/log,swap}
 mount -o "${OPTIONS},subvol=@home" /dev/mapper/root /mnt/home
@@ -330,12 +332,12 @@ rm /etc/sudoers.d/nopass
 mkdir -p /home/<$USER>/.config/subv
 tee /home/<$USER>/.config/subv/sources.cfg <<-"END"
 	[names]
- 	root = /
-  	home = /home
+	root = /
+	home = /home
 
-   	[abbrevs]
-    	r = /
-     	h = /home
+	[abbrevs]
+	r = /
+	h = /home
 END
 
 #############################
@@ -345,11 +347,11 @@ END
 systemctl enable greetd
 tee /etc/greetd/config.toml <<-"END"
 	[terminal]
- 	vt = 1
+	vt = 1
 
 	[default_session]
- 	command = "tuigreet --time --time-format '%A, %B %-d %I:%M' --remember --user-menu --cmd 'Hyprland > /dev/null' --theme 'time=cyan;border=cyan;title=magenta;button=yellow'"
-  	user = "greeter"
+	command = "tuigreet --time --time-format '%A, %B %-d %I:%M' --remember --user-menu --cmd 'Hyprland > /dev/null' --theme 'time=cyan;border=cyan;title=magenta;button=yellow'"
+	user = "greeter"
   END
 
 ########
