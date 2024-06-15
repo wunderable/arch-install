@@ -352,7 +352,7 @@ tee /etc/greetd/config.toml <<-"END"
 	[default_session]
 	command = "tuigreet --time --time-format '%A, %B %-d %I:%M' --remember --user-menu --cmd 'Hyprland > /dev/null' --theme 'time=cyan;border=cyan;title=magenta;button=yellow'"
 	user = "greeter"
-  END
+END
 
 ########
 # MISC #
