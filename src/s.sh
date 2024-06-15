@@ -27,7 +27,7 @@ if [[ $# -eq 1 ]]; then
     suspend | suspend-to-ram | deep | 3 | ram) systemctl suspend; exit;;
     hibernate | suspend-to-disk | disk | 4) systemctl hibernate; exit;;
     hybrid-sleep | suspend-to-both | both) systemctl hybrid-sleep; exit;;
-    suspend-then-hibernate | sleep) systemctl suspend-then-sleep; exit;;
+    suspend-then-hibernate | sleep) systemctl suspend-then-hibernate; exit;;
   esac
 fi
 
