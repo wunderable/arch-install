@@ -13,6 +13,7 @@ alias cd..='cd ..'
 alias view='vim -R'
 alias bat='printf "%s%% - %s\n" $(cat /sys/class/power_supply/BAT0/capacity) $(cat /sys/class/power_supply/BAT0/status)'
 alias term='neofetch --config ~/.config/neofetch/term.conf'
+alias font-list='fc-list | cut -d ":" -f 2- | cut -d "," -f 1 | sort -u'
 
 alias date_y='date +%F' # YYYY-MM-DD
 alias date_t='date +%T' # HH:MM:SS
