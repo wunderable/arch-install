@@ -20,6 +20,9 @@ themes['solar-dark'] =    ['073642', 'dc322f', '859900', 'b58900', '268bd2', 'd3
 themes['gruv-dark'] =     ['282828', 'cc241d', '98971a', 'd79921', '458488', 'b16286', '689d6a', 'a89984',
                            '928374', 'fb4934', 'b8bb26', 'fabd2f', '83a598', 'd3869b', '8ec07c', 'fbf1c7']
 
+themes['google'] =        ['000000', 'ea4335', '34a853', 'fbbc05', '4285f4', '673ab7', '19d5d2', 'a7a7a7',
+                           '333333', 'ee6559', '44c566', 'fcca36', '78a9f7', '7f54c9', '36e7e4', 'fffffff']
+
 names = ['bla', 'red', 'gre', 'yel', 'blu', 'mag', 'cya', 'whi', 'b bla', 'b red', 'b gre', 'b yel', 'b blu', 'b mag', 'b cya', 'b whi' ]
 
 
