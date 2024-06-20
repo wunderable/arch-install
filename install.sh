@@ -283,24 +283,7 @@ sed -Ei "s/^# (%wheel ALL=\(ALL:ALL\) ALL)/\1/" /etc/sudoers
 sed -i "s/#Color/Color/" /etc/pacman.conf
 
 # Install packages with pacman
-pacman --noconfirm -S python3 kitty zsh hyprland neofetch gtk4 vivaldi vivaldi-ffmpeg-codecs spotify-launcher greetd greetd-tuigreet # upower pipewire wireplumber alsa-utils
-
-############
-# NEOFETCH #
-############
-
-# Create config file for term alias
-mkdir -p /home/<$USER>/.config/neofetch
-tee /home/<$USER>/.config/neofetch/term.conf <<-"END"
-	print_info() {
-	    info "Terminal" term
-	    info "Shell" shell
-	}
-	shell_path="on"
-	shell_version="on"
-	image_backend="off"
-	stdout="off"
-END
+pacman --noconfirm -S acpid greetd greetd-tuigreet gtk4 hyprland kitty neofetch python3 spotify-launcher ttf-roboto-mono-nerd vivaldi vivaldi-ffmpeg-codecs zsh # upower pipewire wireplumber alsa-utils
 
 #######
 # YAY #
@@ -323,6 +306,14 @@ rm -r --interactive=never yay
 sudo -u <$USER> yay --noconfirm -Syu
 sudo -u <$USER> yay --noconfirm -S visual-studio-code-bin
 rm /etc/sudoers.d/nopass
+
+#########
+# SHELL #
+#########
+
+# Set prompt and aliases for shells
+sed -i '/^\s*PS1=/asource /etc/profile.d/prompt.sh || true' /etc/bash.bashrc
+echo 'source /etc/profile.d/aliases.sh || true' >> /etc/bash.bashrc
 
 ########
 # SUBV #
@@ -380,13 +371,17 @@ arch-chroot /mnt sh install.sh
 # COPY FILES #
 ##############
 
-# Hyprland setup
+# Hyprland
 mkdir -p /mnt/home/$USER/.config/hypr
 cp $DIR/files/hypr/hyprland.conf /mnt/home/$USER/.config/hypr/hyprland.conf
 
-# Copy other miscellaneous files
-cp $DIR/files/aliases.sh /mnt/etc/profile.d/aliases.sh
-cp $DIR/files/.bashrc /mnt/home/$USER/.bashrc
+# Kitty
+mkdir -p /mnt/home/$USER/.config/kitty
+cp $DIR/files/kitty/kitty.conf /mnt/home/$USER/.config/kitty/kitty.conf
+
+# Shell
+cp $DIR/files/shell/aliases.sh /mnt/etc/profile.d/aliases.sh
+cp $DIR/files/shell/prompt.sh /mnt/etc/profile.d/prompt.sh
 
 ########
 # MISC #
