@@ -304,7 +304,7 @@ rm -r --interactive=never yay
 
 # Install packages with yay
 sudo -u <$USER> yay --noconfirm -Syu
-sudo -u <$USER> yay --noconfirm -S visual-studio-code-bin
+sudo -u <$USER> yay --noconfirm -S anyrun-git visual-studio-code-bin
 rm /etc/sudoers.d/nopass
 
 #########
