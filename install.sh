@@ -282,7 +282,7 @@ sed -Ei "s/^# (%wheel ALL=\(ALL:ALL\) ALL)/\1/" /etc/sudoers
 sed -i "s/#Color/Color/" /etc/pacman.conf
 
 # Install packages with pacman
-pacman --noconfirm -S acpid greetd greetd-tuigreet gtk4 hyprland kitty neofetch python3 spotify-launcher ttf-roboto-mono-nerd vivaldi vivaldi-ffmpeg-codecs zsh # upower pipewire wireplumber alsa-utils
+pacman --noconfirm -S acpid greetd greetd-tuigreet gtk4 hyprland kitty neofetch python3 spotify-launcher ttf-joypixels ttf-roboto-mono-nerd vivaldi vivaldi-ffmpeg-codecs zsh # upower pipewire wireplumber alsa-utils
 
 #######
 # YAY #
