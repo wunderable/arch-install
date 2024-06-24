@@ -270,7 +270,6 @@ build-myarchiso
 
 # Create user and set passwords
 useradd -m -G wheel <$USER>
-cp -a /etc/skel/. /home/<$USER>/
 echo <$USER>:<$USER_PASS> | chpasswd
 echo root:<$USER_PASS> | chpasswd
 sed -Ei "s/^# (%wheel ALL=\(ALL:ALL\) ALL)/\1/" /etc/sudoers
