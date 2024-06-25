@@ -112,7 +112,6 @@ btrfs sub create /mnt/@swap
 mkdir /mnt/@root/var
 btrfs sub create /mnt/@root/var/cache
 btrfs sub create /mnt/@root/var/tmp
-btrfs sub create /mnt/@root/tmp
 umount /mnt
 
 # Mount partitions
