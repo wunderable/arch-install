@@ -110,6 +110,7 @@ btrfs sub create /mnt/@snapshots
 btrfs sub create /mnt/@log
 btrfs sub create /mnt/@swap
 mkdir /mnt/@root/var
+btrfs sub create /mnt/@root/tmp
 btrfs sub create /mnt/@root/var/cache
 btrfs sub create /mnt/@root/var/tmp
 umount /mnt
