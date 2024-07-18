@@ -9,14 +9,14 @@ import configparser
 from datetime import datetime
 
 fields = [
-          ('i', 'id'),                                      # id
-          ('p', 'parent\'s id'),                            # pid
-          ('n', 'name'),                                    # name
-          ('l', 'location'),                                # loc
-          ('t', 'datetime'),                                # time
-          ('m', 'mount type'),                              # mnt
-          ('r', 'permissions (read-write or read-only)'),   # read
-          ('s', 'type (subvolume or snapshot)')             # snap
+          ('i', 'ID',   'id'),                                      # id
+          ('p', 'PID',  'parent\'s id'),                            # pid
+          ('n', 'Name', 'name'),                                    # name
+          ('l', 'Loc',  'location'),                                # loc
+          ('t', 'Time', 'datetime'),                                # time
+          ('m', 'Mount',  'mount type'),                              # mnt
+          ('r', 'Read', 'permissions (read-write or read-only)'),   # read
+          ('s', 'Snap', 'type (subvolume or snapshot)')             # snap
         ]
 
 config_path = '$HOME/.config/subv/sources.cfg'
@@ -35,12 +35,7 @@ def get_args(self):
     args = self.parse_args()
     match(args.cmd):
         case 'list':
-            args.filter_paths = True
-            if args.path is None:
-                args.path = '/'
-                args.filter_paths = False
-            if args.explicit_filter is not None:
-                args.filter_paths = args.explicit_filter
+            args.path = args.PATH
             if not os.path.exists(args.path):
                 self.subs['list'].error(f'path [{args.path}] not found')
             if os.stat(args.path).st_ino != 256:
@@ -88,43 +83,39 @@ def get_args(self):
 
 ###### Get argparse instance for handling supplied arguments
 def get_parser():
-    main = argparse.ArgumentParser(
-            prog='subv',
-            description='A utility to help manage btrfs subvolumes',
-            formatter_class=RawFormatter)
+    main = argparse.ArgumentParser(prog='subv', description='A utility to help manage btrfs subvolumes', formatter_class=RawFormatter)
     main.subs = {}
     subs = main.add_subparsers(help='commands', dest='cmd')
 
     # List subparser
-    listp = subs.add_parser('list',
-                            help='list all subvolumes under /',
-                            description='Outputs a list of all subvolumes under the specified path',
-                            formatter_class=RawFormatter)
+    listp = subs.add_parser('list', help='list all subvolumes under /', description='Outputs a list of subvolumes in a btrfs filesystem', formatter_class=RawFormatter)
     main.subs['list'] = listp
-    listp_help = 'R|FIELDS is a series of letters that refer to the fields that will be displayed and in what order. Default is \'il\'. Fields can be:'
-    for f in fields: listp_help += f'\n  {f[0]}  {f[1]}'
-    listp.add_argument('path', nargs='?', help='list all subvolumes under PATH. If PATH isn\'t supplied, it defaults to \'/\', but no path filtering is applied')
-    listp_path = listp.add_mutually_exclusive_group()
-    listp_path.add_argument('-p', '--filter-paths', dest='explicit_filter', action='store_const', const=True, help='only display subvolumes whose location is under PATH')
-    listp_path.add_argument('-P', '--no-filter-paths', dest='explicit_filter', action='store_const', const=False, help='displays all subvolumes without filtering by path')
-    listp.add_argument('-a', '--all-fields', action='store_true', help='all fields will be displayed in their default order. Overrides FIELDS if set')
-    listp.add_argument('-f', '--fields', default='il', help=listp_help)
+    listp_fields_help = 'R|FIELDS is a series of letters that refer to the fields that will be displayed and in what order. Default is \'il\'. Fields can be:'
+    listp_all_fields_help = 'all fields will be displayed. Equivelant to setting FIELDS to \''
+    for f in fields:
+        listp_fields_help += f'\n  {f[0]}  {f[2]}'
+        listp_all_fields_help += f[0]
+    listp_all_fields_help += '\'. Will override FIELDS if set'
+    listp.add_argument('PATH', default='/', nargs='?', help='location of btrfs filesystem to list subvolumes from. Default is \'/\'')
+    listp.add_argument('-f', '--fields', default='il', help=listp_fields_help)
     listp.add_argument('-o', '--order', default='i', help='ORDER is a series of letters indicating which fields to sort by. Uppercase letters will reverse the sort order. Default is \'i\'')
+    listp.add_argument('-t', '--titles', action='store_true', help='display field titles on output')
+    listp.add_argument('-a', '--all-fields', action='store_true', help=listp_all_fields_help)
+    listp.add_argument('-p', '--filter-paths', action='store_true', help='filter to only show subvolumes that are under PATH')
     listp_mount = listp.add_mutually_exclusive_group()
-    listp_mount.add_argument('-m', '--mounted', action='store_true', help='filter to show subvolumes that are mounted')
-    listp_mount.add_argument('-M', '--unmounted', action='store_true', help='filter to show subvolumes that are NOT mounted')
+    listp_mount.add_argument('-m', '--mounted', action='store_true', help='filter to only show subvolumes that are mounted')
+    listp_mount.add_argument('-M', '--unmounted', action='store_true', help='filter to only show subvolumes that are NOT mounted')
     listp_read = listp.add_mutually_exclusive_group()
-    listp_read.add_argument('-r', '--read-only', action='store_true', help='filter to show subvolumes that are read-only')
-    listp_read.add_argument('-R', '--read-write', action='store_true', help='filter to show subvolumes that are NOT read-only')
+    listp_read.add_argument('-r', '--read-only', action='store_true', help='filter to only show subvolumes that are read-only')
+    listp_read.add_argument('-R', '--read-write', action='store_true', help='filter to only show subvolumes that are NOT read-only')
     listp_snap = listp.add_mutually_exclusive_group()
-    listp_snap.add_argument('-s', '--snapshot', action='store_true', help='filter to show subvolumes that are snapshots')
-    listp_snap.add_argument('-S', '--subvolume', action='store_true', help='filter to show subvolumes that are NOT snapshots')
+    listp_snap.add_argument('-s', '--snapshot', action='store_true', help='filter to only show subvolumes that are snapshots')
+    listp_snap.add_argument('-S', '--subvolume', action='store_true', help='filter to only show subvolumes that are NOT snapshots')
+    listp.add_argument('-B', '--before', help='filter to only show subvolumes with a datetime before BEFORE')
+    listp.add_argument('-A', '--after', help='filter to only show subvolumes with a datetime after AFTER')
 
     # Snap subparser
-    snapp = subs.add_parser('snap',
-                            help='create a snapshot of the specified subvolumes',
-                            description='Creates a snapshot of all specified subvolumes and saves it to /snapshots/YYYYMMDD_HHMMSS/',
-                            formatter_class=RawFormatter)
+    snapp = subs.add_parser('snap', help='create a snapshot of the specified subvolumes', description='Creates a snapshot of all specified subvolumes and saves it to /snapshots/YYYYMMDD_HHMMSS/', formatter_class=RawFormatter)
     main.subs['snap'] = snapp
     snapp.add_argument('-r', '--read-only', action='store_true', help='create the snapshot(s) as read only')
     snapp.add_argument('-n', '--name', help='append NAME to the snapshot\'s datetime folder')
@@ -162,12 +153,15 @@ def execute(cmd):
 ###### Returns a list of subvolumes as a tuple consisting of id, parent's id, and name
 def get_subs(path):
     results = execute(f'sudo btrfs subvolume list -a {path}')
-    subvolumes = []
+    subvolumes = [('5', '0', '/')]
     for line in results.splitlines():
         field = line.split()
-        field[8] = re.sub(r'^<FS_TREE>/', '', field[8])
-        subvolumes.append((field[1], field[6], field[8]))
-    return subvolumes # (id, pid, loc)
+        if field[8].startswith('<FS_TREE>'):
+            loc = field[8].replace('<FS_TREE>', '', 1)
+        else:
+            loc = '/' + field[8]
+        subvolumes.append((field[1], field[6], loc))
+    return subvolumes # [(id, pid, loc)]
 
 
 ###### Returns a list of subvolume ids for subvolumes that are snapshots
@@ -177,7 +171,7 @@ def get_snaps(path):
     for line in results.splitlines():
         field = line.split()
         snaps.append(field[1])
-    return snaps # (id)
+    return snaps # [id]
 
 
 ###### Returns a list of subvolume ids for subvolumes that are read-only
@@ -187,7 +181,7 @@ def get_ros(path):
     for line in results.splitlines():
         field = line.split()
         ros.append(field[1])
-    return ros # (id)
+    return ros # [id]
 
 
 ###### Returns a list of mounted subvolumes as a tuple consisting of id, name, and mount point
@@ -197,9 +191,10 @@ def get_mounts():
     for line in results.splitlines():
         field = line.split()
         match_id = re.search(r'(?<=\bsubvolid=)\d+', field[3])
-        match_name = re.search(r'(?<=\bsubvol=/)[^,]*', field[3])
+        match_name = re.search(r'(?<=\bsubvol=)[^,]*', field[3])
         mounts.append((match_id.group(0), match_name.group(0), field[0]))
-    return mounts # (id, name, loc)
+    mounts = sorted(mounts, key=lambda x: x[1].count('/'), reverse=True) # sort descending by number of /'s in name
+    return mounts # [(id, name, loc)]
 
 
 ###### Returns details from a subvolume
@@ -208,69 +203,83 @@ def get_details(path):
     match_name = re.search(r'Name:\s+(.+)', results)
     match_time = re.search(r'Creation time:\s+(.+)', results)
     match_err = re.search(r'ERROR: not a btrfs filesystem', results)
-    name = match_name.group(1) if match_name else ''
-    time = match_time.group(1) if match_time else ''
+    name = match_name.group(1) if match_name else '-'
+    time = match_time.group(1) if match_time else '-'
     mount = False
     if match_err:
-        name = '?'
-        time = '?'
+        #TODO: Attempt to unmount path, retrieve subvolume info again, and re-mount path
+        name = '-'
+        time = '-'
         mount = True
-    return (name, time, mount)
+    return [name, time, mount] # (name, time, mount)
 
 
 ###### Creates a 2d array of subvolume info by combining the output of multiple system calls
 def get_subvolumes(path):
-    subs = get_subs(path)
-    snaps = get_snaps(path)
-    ros = get_ros(path)
-    mounts = get_mounts()
+    subs = get_subs(path) # [(id, pid, loc)]
+    snaps = get_snaps(path) # [id]
+    ros = get_ros(path) # [id]
+    mounts = get_mounts() # [(id, name, loc)]
     subvolumes = []
-    for s in subs:
+    for sub in subs:
+        # Set type to subvolume or snapshot
         typ = 'subvolume'
-        if s[0] in snaps:
+        if sub[0] in snaps:
             typ = 'snapshot'
-            snaps.remove(s[0])
+            snaps.remove(sub[0])
+        # Set permissions to r (read) or rw (read/write)
         r = 'rw'
-        if s[0] in ros:
+        if sub[0] in ros:
             r = 'r'
-            ros.remove(s[0])
+            ros.remove(sub[0])
+        # Set loc to explicitly mounted location and mnt to either - or btrfs
         mnt = '-'
-        loc = ''
-        for m in mounts:
-            if m[0] == s[0]:
+        loc = '-'
+        for mount in mounts:
+            if mount[0] == sub[0]:
                 mnt = 'btrfs'
-                loc = m[2]
+                loc = mount[2]
                 break
-        if mnt == '-':
-            parent_dir = s[2].split('/')[0] # substring of name before first /
-            for m in mounts:
-                if parent_dir == m[1]:
-                    loc = s[2].replace(parent_dir, m[2])
-                    if m[2] == '/': loc = loc[1:]
+        # Set loc to implicitly mounted location
+        if mnt != 'btrfs':
+            for mount in mounts:
+                if sub[2].startswith(mount[1]):
+                    path = mount[2] if mount[2] != '/' else '' # if path is just /, remove it to avoid double /
+                    if mount[1] == '/': path += '/' # if mount name is just /, append a / to path to avoid missing /
+                    loc = sub[2].replace(mount[1], path, 1)
                     break
+        # Set name and time
         details = get_details(loc)
-        if details[2]: mnt = execute(f'findmnt -nl {loc}').split()[2]
-        subvolumes.append((int(s[0]), int(s[1]), details[0], loc, details[1], mnt, r, typ))
+        if details[0] == '-':
+            details[0] = sub[2].rsplit('/', 1)[-1] if sub[0] != '5' else '<FS_TREE>'
+        if details[2]: mnt = execute(f'findmnt -nl {loc}').split()[2] # subvolume is mounted as another mount type, get that type
+        subvolumes.append((int(sub[0]), int(sub[1]), details[0], loc, details[1], mnt, r, typ))
     return subvolumes # (id, pid, name, loc, time, mnt, read, snap)
 
 
 ###### Prints a 2d array to stdout
-def print_2d(arr, spaces=1):
-    lengths = []
-    first = True
-    for i in arr:
-        c = -1 
-        for j in i:
-            c += 1
-            if first: lengths.append(0)
-            if len(str(j)) > lengths[c]: lengths[c] = len(str(j))
-        first = False
-    for i in arr:
-        c = -1
-        for j in i:
-            c += 1
-            print(j, end='')
-            print(' ' * (lengths[c] - len(str(j)) + spaces), end='')
+def print_2d(arr, spaces=1, header=None):
+    lengths = [0]*len(arr)
+    if header is not None:
+        for i, item in enumerate(header):
+            lengths[i] = len(str(item))
+    for row in arr:
+        for i, item in enumerate(row):
+            if len(str(item)) > lengths[i]:
+                lengths[i] = len(str(item))
+    if header is not None:
+        for i, item in enumerate(header):
+            print(item, end='')
+            print(' ' * (lengths[i] - len(str(item)) + spaces), end='')
+        print()
+        for i, item in enumerate(header):
+            print('-' * lengths[i], end='')
+            print(' ' * spaces, end='')
+        print()
+    for row in arr:
+        for i, item in enumerate(row):
+            print(item, end='')
+            print(' ' * (lengths[i] - len(str(item)) + spaces), end='')
         print()
 
 
@@ -284,6 +293,8 @@ def exec_list(args):
     if args.unmounted: subs = [s for s in subs if s[5] == '-']
     if args.snapshot: subs = [s for s in subs if s[7] == 'snapshot']
     if args.subvolume: subs = [s for s in subs if s[7] == 'subvolume']
+    if args.before: subs = [s for s in subs if s[4] < args.before]
+    if args.after: subs = [s for s in subs if s[4] > args.after]
     field_dictionary = {}
     for i,f in enumerate(fields):
         field_dictionary[f[0]] = i
@@ -297,7 +308,14 @@ def exec_list(args):
         out.append([])
         for f in args.fields:
             out[-1].append(s[field_dictionary[f]])
-    print_2d(out, 3)
+            if f == 'p' and out[-1][-1] == 0: out[-1][-1] = '-' # replace parent id of 0 with -
+    if args.titles:
+        header = []
+        for f in args.fields:
+            header.append(fields[field_dictionary[f]][1])
+    else:
+        header = None
+    print_2d(out, 3, header)
     exit(0)
 
 
