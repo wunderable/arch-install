@@ -54,25 +54,28 @@ def get_args(self):
             abbrev_reg = '^['
             for a in abbrevs: abbrev_reg += a[0]
             abbrev_reg += ']+$'
-            if len(abbrevs) < 1: abbrev_reg = '^$'
-            for i,s in enumerate(args.sources):
+            if len(abbrevs) < 1: abbrev_reg = '^$' # if no abbrevs are set in config file
+            for i, s in enumerate(args.sources):
+                # A - First check if the source is a name in the config file
                 found_name = False
                 for n in names:
                     if s == n[0]:
-                        args.sources[i] = n[1]
+                        args.sources[i] = n[1] # replace the source name with the path from the config file
                         found_name = True
                         break
                 if found_name: continue
-                if re.match(abbrev_reg, s):
-                    for l in s:
+                # B - Then check if the source matches any of the abbrevs set in the config file
+                if re.match(abbrev_reg, s): # if a source contains only abbrev letters
+                    for l in s: # loop through each letter of the source
                         for a in abbrevs:
                             if l == a[0]:
-                                args.sources.append(a[1])
+                                args.sources.append(a[1]) # add the abbrev path to the end of the sources list
                                 break
-                    args.sources[i] = None
-            args.sources = [s for s in args.sources if s is not None]
-            args.sources = list(set(args.sources))
-            args.names = names
+                    args.sources[i] = None # set the sources element to None so it can be filtered out
+                # C - Otherwise treat source as a path
+            args.sources = [s for s in args.sources if s is not None] # filter out elements that aren't needed
+            args.sources = list(set(args.sources)) # removes duplicate paths from the sources list
+            args.names = names # include names in args so we don't have to call read_config() again to obtain
             for s in args.sources:
                 if not os.path.exists(s):
                     self.subs['snap'].error(f'source [{s}] not found')
@@ -115,11 +118,11 @@ def get_parser():
     listp.add_argument('-A', '--after', help='filter to only show subvolumes with a datetime after AFTER')
 
     # Snap subparser
-    snapp = subs.add_parser('snap', help='create a snapshot of the specified subvolumes', description='Creates a snapshot of all specified subvolumes and saves it to /snapshots/YYYYMMDD_HHMMSS/', formatter_class=RawFormatter)
+    snapp = subs.add_parser('snap', help='create a snapshot of the specified subvolumes', description='Creates a snapshot of all specified subvolumes and saves it to /snapshots/YYYY-MM-DD/name.YYYYMMDD.HHMMSS', formatter_class=RawFormatter)
     main.subs['snap'] = snapp
     snapp.add_argument('-r', '--read-only', action='store_true', help='create the snapshot(s) as read only')
-    snapp.add_argument('-n', '--name', help='append NAME to the snapshot\'s datetime folder')
-    snapp.add_argument('sources', nargs='+', help='space-separated locations to create a snapshot of. It first tries to match source to a name from the config file [names] section, it then tries to match source against abbrev(s) from the [abbrevs] section, then finally treats source as a path. If a location is found in the [names] section of the config file, the snapshot will use that name, otherwise it will use the location\'s name with /\'s replaced with _\'s. i.e. if the config file [names] section contains the line "log = /var/log", the snapshot will be placed in /snapshots/20240523_161238/log, otherwise it will be placed in /snapshots/20240523_161238/_var_log')
+    snapp.add_argument('-n', '--name', help='append NAME to the snapshot\'s parent folder')
+    snapp.add_argument('sources', nargs='+', help='space-separated locations to create a snapshot of. It first tries to match source to a name from the config file [names] section, it then tries to match source against abbrev(s) from the [abbrevs] section, then finally treats source as a path. If a location is found in the [names] section of the config file, the snapshot will use that name, otherwise it will use the location\'s name with /\'s replaced with _\'s. i.e. if the config file [names] section contains the line "log = /var/log", the snapshot will be placed in /snapshots/2024-05-23/log.20240523.153211, otherwise it will be placed in /snapshots/2024-05-23/_var_log.20240523.153211')
 
     # Add a function that can be called on our instansiated objects
     argparse.ArgumentParser.get_args = get_args
