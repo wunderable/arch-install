@@ -24,7 +24,10 @@ mkdir -p /tmp/iso/airootfs/etc/systemd/system/getty@tty1.service.d
 cp /usr/share/archiso/configs/releng/airootfs/etc/systemd/system/getty@tty1.service.d/autologin.conf /tmp/iso/airootfs/etc/systemd/system/getty@tty1.service.d
 
 # Set hostname
-echo 'liveiso' /tmp/iso/airootfs/etc/hostname
+echo 'liveiso' > /tmp/iso/airootfs/etc/hostname
+
+# Add kernel parameters
+sed -i '/^\s*linux\s/s/$/ quiet loglevel=3/' /tmp/iso/airootfs/grub/grub.cfg
 
 # Setup bash
 mkdir -p /tmp/iso/airootfs/etc/profile.d
@@ -47,6 +50,10 @@ done
 
 # Allow ISO to be mounted via loop
 sed -i 's/archiso/archiso archiso_loop_mnt/' /tmp/iso/airootfs/etc/mkinitcpio.conf.d/archiso.conf
+
+# Use squashfs instead of default erofs (because it's currently faster)
+sed -i 's/erofs/squashfs/' /tmp/iso/profiledef.sh
+sed -i '/image_tool/c\airootfs_image_tool_options=(-comp xz -b 256k -no-exports -no-xattrs)' /tmp/iso/profiledef.sh
 
 # Create the ISO
 mkdir /tmp/out
