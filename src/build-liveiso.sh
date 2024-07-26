@@ -23,9 +23,14 @@ echo -e 'btrfs-progs\niwd\nvim' >> /tmp/iso/packages.x86_64
 mkdir -p /tmp/iso/airootfs/etc/systemd/system/getty@tty1.service.d
 cp /usr/share/archiso/configs/releng/airootfs/etc/systemd/system/getty@tty1.service.d/autologin.conf /tmp/iso/airootfs/etc/systemd/system/getty@tty1.service.d
 
-# Include our aliases
+# Set hostname
+echo 'liveiso' /tmp/iso/airootfs/etc/hostname
+
+# Setup bash
 mkdir -p /tmp/iso/airootfs/etc/profile.d
 cp /etc/profile.d/aliases.sh /tmp/iso/airootfs/etc/profile.d
+cp /etc/profile.d/prompt.sh /tmp/iso/airootfs/etc/profile.d
+cp /etc/bash.bashrc /tmp/iso/airootfs/etc
 
 # Include our scripts
 mkdir -p /tmp/iso/airootfs/usr/local/bin
@@ -49,7 +54,7 @@ mkarchiso -v -w /tmp/iso -o /tmp/out /tmp/iso
 
 # Cleanup of files
 rm -rf /tmp/iso
-[ ! -e /boot/iso/myarch.iso ] || rm /boot/iso/myarch.iso
+[ ! -e /boot/iso/liveiso.iso ] || rm /boot/iso/liveiso.iso
 mkdir -p /boot/iso
-mv /tmp/out/archlinux-*.iso /boot/iso/myarch.iso
+mv /tmp/out/archlinux-*.iso /boot/iso/liveiso.iso
 rmdir /tmp/out
