@@ -265,6 +265,14 @@ grub-mkconfig -o /boot/grub/grub.cfg
 build-myarchiso
 
 #########
+# SHELL #
+#########
+
+# Set prompt and aliases for shells
+sed -i '/^\s*PS1=/asource /etc/profile.d/prompt.sh || true' /etc/bash.bashrc
+echo 'source /etc/profile.d/aliases.sh || true' >> /etc/bash.bashrc
+
+#########
 # USERS #
 #########
 
@@ -305,14 +313,6 @@ rm -r --interactive=never yay
 sudo -u <$USER> yay --noconfirm -Syu
 sudo -u <$USER> yay --noconfirm -S anyrun-git visual-studio-code-bin
 rm /etc/sudoers.d/nopass
-
-#########
-# SHELL #
-#########
-
-# Set prompt and aliases for shells
-sed -i '/^\s*PS1=/asource /etc/profile.d/prompt.sh || true' /etc/bash.bashrc
-echo 'source /etc/profile.d/aliases.sh || true' >> /etc/bash.bashrc
 
 ########
 # SUBV #
