@@ -160,7 +160,7 @@ for FILE in $DIR/src/*; do
 done
 
 # Update files with appropriate values
-if [ -n "$UCODE" ]; then sed -i "s/\(' >> \/tmp\/iso\/packages.x86_64\)/\\\\n$UCODE\1/" /mnt/usr/local/src/build-myarchiso.sh; fi
+if [ -n "$UCODE" ]; then sed -i "s/\(' >> \/tmp\/iso\/packages.x86_64\)/\\\\n$UCODE\1/" /mnt/usr/local/src/build-liveiso.sh; fi
 sed -i "s/<\$PART2>/${PART2//\//\\\/}/g" /mnt/usr/local/src/iso-mfs.sh
 sed -i "s/<\$OPTIONS>/$OPTIONS/g" /mnt/usr/local/src/iso-mfs.sh
 
@@ -247,7 +247,7 @@ grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
 tee -a /etc/grub.d/40_custom <<-"END"
 	menuentry 'Live ISO' --class disc --class iso {
 	    set imgdevpath='/dev/disk/by-uuid/xxxx-xxxx'
-	    set isofile='/iso/myarch.iso'
+	    set isofile='/iso/liveiso.iso'
 	    loopback loop $isofile
 	    linux (loop)/arch/boot/x86_64/vmlinuz-linux img_dev=$imgdevpath img_loop=$isofile earlymodules=loop
 	    initrd (loop)/arch/boot/intel-ucode.img (loop)/arch/boot/x86_64/initramfs-linux.img
@@ -262,7 +262,7 @@ sed -i 's/^\s+/\t/' /etc/grub.d/40_custom
 
 # Update GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
-build-myarchiso
+build-liveiso
 
 #########
 # SHELL #
