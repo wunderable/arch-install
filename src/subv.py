@@ -9,30 +9,83 @@ import configparser
 from datetime import datetime
 
 fields = [
-          ('i', 'ID',   'id'),                                      # id
-          ('p', 'PID',  'parent\'s id'),                            # pid
-          ('n', 'Name', 'name'),                                    # name
-          ('l', 'Loc',  'location'),                                # loc
-          ('t', 'Time', 'datetime'),                                # time
-          ('m', 'Mount',  'mount type'),                              # mnt
-          ('r', 'Read', 'permissions (read-write or read-only)'),   # read
-          ('s', 'Snap', 'type (subvolume or snapshot)')             # snap
+          ('i', 'ID',       'id'),                                      # id
+          ('p', 'PID',      'parent\'s id'),                            # pid
+          ('n', 'Name',     'name'),                                    # name
+          ('l', 'Loc',      'location'),                                # loc
+          ('t', 'Time',     'datetime'),                                # time
+          ('m', 'Mount',    'mount type'),                              # mnt
+          ('r', 'Read',     'permissions (read-write or read-only)'),   # read
+          ('s', 'Snap',     'type (subvolume or snapshot)')             # snap
         ]
 
 config_path = '$HOME/.config/subv/sources.cfg'
 
 
-###### Formatter for argparse that preservers new lines if text begins with 'R|'
-class RawFormatter(argparse.HelpFormatter):
+###### Custom class for ArgumentParser to tweak some functionality
+class CustomArgumentParser(argparse.ArgumentParser):
+
+    # Display error message followed by usage, instead of default of usage followed by error message
+    def error(self, message):
+        sys.stderr.write('error: %s\n' % message)
+        self.print_usage()
+        sys.exit(2)
+
+
+###### Custom class for HelpFormatter to tweak some functionality
+class CustomHelpFormatter(argparse.HelpFormatter):
+
+    # Moves the help message over 35 characters instead of default 24
+    def __init__(self, prog, indent_increment=2, max_help_position=35, width=None):
+        return super().__init__(prog, indent_increment, max_help_position, width)
+
+    # Preserves new lines if text begins with 'R|'
     def _split_lines(self, text, width):
         if text.startswith('R|'):
             return text[2:].splitlines()
-        return argparse.HelpFormatter._split_lines(self, text, width)
+        return super()._split_lines(text, width)
+    
+    # Adding a helper function to remove aliases from SubParserAction
+    def _remove_aliases(self, action):
+        if not isinstance(action, argparse._SubParsersAction): return action
+        unique = {}
+        for choice in action.choices:
+            prog = action.choices[choice].prog
+            if prog not in unique: unique[prog] = choice
+        removed = {}
+        for choice in unique.values():
+            removed[choice] = action.choices[choice]
+        action.choices = removed
+        return action
+    
+    # Remove aliases from actions
+    def add_usage(self, usage, actions, groups, prefix=None):
+        for action in actions:
+            self._remove_aliases(action)
+        return super().add_usage(usage, actions, groups, prefix)
+    
+    # Removes aliases between ()'s in subcommand help text
+    def _format_action_invocation(self, action):
+        if isinstance(action, argparse._SubParsersAction._ChoicesPseudoAction):
+            action.metavar = re.sub(r'\(.*?\)$', '', action.metavar)
+        return super()._format_action_invocation(action)
+
+
+###### Converts a command into a list of aliases (shortcuts) for that command
+def create_aliases(cmd):
+    aliases = []
+    for i,_ in enumerate(cmd):
+        aliases.append(cmd[:i])
+    del aliases[0]
+    return aliases
 
 
 ###### Parses args using argparse and has some additional validation that argparse can't natively handle. Returns args
 def get_args(self):
     args = self.parse_args()
+    if args.cmd in create_aliases('list'): args.cmd = 'list'
+    if args.cmd in create_aliases('snap'): args.cmd = 'snap'
+    if args.cmd in create_aliases('restore'): args.cmd = 'restore'
     match(args.cmd):
         case 'list':
             args.path = args.PATH
@@ -81,17 +134,19 @@ def get_args(self):
                     self.subs['snap'].error(f'source [{s}] not found')
                 if not execute(f'ls -id {s}').split()[0] == '256':
                     self.subs['snap'].error(f'source [{s}] is not btrfs subvolume')
+        case 'restore':
+            subs = get_subvolumes(args.path)
     return args
 
 
 ###### Get argparse instance for handling supplied arguments
 def get_parser():
-    main = argparse.ArgumentParser(prog='subv', description='A utility to help manage btrfs subvolumes', formatter_class=RawFormatter)
+    main = CustomArgumentParser(prog='subv', description='A utility to help manage btrfs subvolumes', formatter_class=CustomHelpFormatter)
     main.subs = {}
     subs = main.add_subparsers(help='commands', dest='cmd')
 
     # List subparser
-    listp = subs.add_parser('list', help='list all subvolumes under /', description='Outputs a list of subvolumes in a btrfs filesystem', formatter_class=RawFormatter)
+    listp = subs.add_parser('list', aliases=create_aliases('list'), help='list all subvolumes under /', description='Outputs a list of subvolumes in a btrfs filesystem', formatter_class=CustomHelpFormatter)
     main.subs['list'] = listp
     listp_fields_help = 'R|FIELDS is a series of letters that refer to the fields that will be displayed and in what order. Default is \'il\'. Fields can be:'
     listp_all_fields_help = 'all fields will be displayed. Equivelant to setting FIELDS to \''
@@ -118,11 +173,18 @@ def get_parser():
     listp.add_argument('-A', '--after', help='filter to only show subvolumes with a datetime after AFTER')
 
     # Snap subparser
-    snapp = subs.add_parser('snap', help='create a snapshot of the specified subvolumes', description='Creates a snapshot of all specified subvolumes and saves it to /snapshots/YYYY-MM-DD/name.YYYYMMDD.HHMMSS', formatter_class=RawFormatter)
+    snapp = subs.add_parser('snap', aliases=create_aliases('snap'), help='create a snapshot of the specified subvolumes', description='Creates a snapshot of all specified subvolumes and saves it to /snapshots/YYYY-MM-DD/name.YYYYMMDD.HHMMSS', formatter_class=CustomHelpFormatter)
     main.subs['snap'] = snapp
     snapp.add_argument('-r', '--read-only', action='store_true', help='create the snapshot(s) as read only')
     snapp.add_argument('-n', '--name', help='append NAME to the snapshot\'s parent folder')
     snapp.add_argument('sources', nargs='+', help='space-separated locations to create a snapshot of. It first tries to match source to a name from the config file [names] section, it then tries to match source against abbrev(s) from the [abbrevs] section, then finally treats source as a path. If a location is found in the [names] section of the config file, the snapshot will use that name, otherwise it will use the location\'s name with /\'s replaced with _\'s. i.e. if the config file [names] section contains the line "log = /var/log", the snapshot will be placed in /snapshots/2024-05-23/log.20240523.153211, otherwise it will be placed in /snapshots/2024-05-23/_var_log.20240523.153211')
+
+    # Restore subparser
+    restp = subs.add_parser('restore', aliases=create_aliases('restore'), help='restore an earlier snapshot', formatter_class=CustomHelpFormatter)
+    main.subs['restore'] = restp
+    restp.add_argument('-p', '--path', default='/', help='path to find the snapshot ids under. Default is \'/\'')
+    restp.add_argument('-k', '--keep-current', action='store_true', help='creates a snapshot of the location before restoring it to a previous version')
+    restp.add_argument('ids', nargs='*', help='space-separated list of ids of the snapshots to restore')
 
     # Add a function that can be called on our instansiated objects
     argparse.ArgumentParser.get_args = get_args
@@ -247,7 +309,7 @@ def get_subvolumes(path):
         if mnt != 'btrfs':
             for mount in mounts:
                 if sub[2].startswith(mount[1]):
-                    path = mount[2] if mount[2] != '/' else '' # if path is just /, remove it to avoid double /
+                    path = mount[2] if mount[2] != '/' else '' # if path is just /, remove it to avoid double //
                     if mount[1] == '/': path += '/' # if mount name is just /, append a / to path to avoid missing /
                     loc = sub[2].replace(mount[1], path, 1)
                     break
@@ -342,6 +404,12 @@ def exec_snap(args):
     exit(0)
 
 
+###### Restore to an earlier snapshot
+def exec_restore(args):
+    print('restore')
+    exit(0)
+
+
 ###### Program start
 def main():
     parser = get_parser()
@@ -352,7 +420,7 @@ def main():
     match(args.cmd):
         case 'list': exec_list(args)
         case 'snap': exec_snap(args)
-
+        case 'restore': exec_restore(args)
 
 ###### Program init
 if __name__ == '__main__':
