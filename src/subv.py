@@ -203,11 +203,14 @@ def read_config():
     try:
         config_parser = configparser.ConfigParser()
         config_parser.read(config_file)
-        config.path = config_parser['settings']['default_path']
-        for key in config_parser['names']:
-            config.names.append((key, config_parser['names'][key]))
-        for key in config_parser['abbrevs']:
-            config.abbrevs.append((key, config_parser['abbrevs'][key]))
+        if 'settings' in config_parser and 'default_path' in config_parser['settings']:
+            config.path = config_parser['settings']['default_path']
+        if 'names' in config_parser:
+            for key in config_parser['names']:
+                config.names.append((key, config_parser['names'][key]))
+        if 'abbrevs' in config_parser:
+            for key in config_parser['abbrevs']:
+                config.abbrevs.append((key, config_parser['abbrevs'][key]))
     except:
         print(f'WARNING: There was an issue reading {config_path}', file=sys.stderr)
     return config
