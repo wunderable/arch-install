@@ -318,9 +318,11 @@ rm /etc/sudoers.d/nopass
 # SUBV #
 ########
 
-# Create sources.cfg file
-mkdir -p /home/<$USER>/.config/subv
-tee /home/<$USER>/.config/subv/sources.cfg <<-"END"
+# Create config file
+tee /etc/subv.conf <<-"END"
+	[settings]
+	default_path = /
+
 	[names]
 	root = /
 	home = /home
