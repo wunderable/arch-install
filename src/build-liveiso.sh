@@ -48,6 +48,16 @@ for CMD in /tmp/iso/airootfs/usr/local/bin/*; do
   sed -i '/^file_permissions=(/a \ \ ["/usr/local/bin/'$CMD'"]="0:0:755"' /tmp/iso/profiledef.sh
 done
 
+# Settings for subv
+tee /tmp/iso/airootfs/etc/subv.conf <<-END
+	[settings]
+	default_path = /mnt
+
+	[names]
+
+	[abbrevs]
+END
+
 # Allow ISO to be mounted via loop
 sed -i 's/archiso/archiso archiso_loop_mnt/' /tmp/iso/airootfs/etc/mkinitcpio.conf.d/archiso.conf
 
