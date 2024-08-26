@@ -7,6 +7,7 @@ import argparse
 import subprocess
 import configparser
 from datetime import datetime
+from argparse import Namespace
 
 fields = [
           ('i', 'ID',       'id'),                                      # id
@@ -19,7 +20,7 @@ fields = [
           ('s', 'Snap',     'type (subvolume or snapshot)')             # snap
         ]
 
-config_path = '$HOME/.config/subv/sources.cfg'
+config_path = '/etc/subv.conf'
 
 
 ###### Custom class for ArgumentParser to tweak some functionality
@@ -81,7 +82,7 @@ def create_aliases(cmd):
 
 
 ###### Parses args using argparse and has some additional validation that argparse can't natively handle. Returns args
-def get_args(self):
+def get_args(self, config):
     args = self.parse_args()
     if args.cmd in create_aliases('list'): args.cmd = 'list'
     if args.cmd in create_aliases('snap'): args.cmd = 'snap'
@@ -102,16 +103,18 @@ def get_args(self):
                 self.subs['list'].error(f'unknown value [{args.order}] for ORDER')
             if args.all_fields:
                 args.fields = field_str
+            if args.name is not None:
+                if not any(name[0] == args.name for name in config.names):
+                    self.subs['list'].error(f'unknown value [{args.name}] for NAME')
         case 'snap':
-            names, abbrevs = read_config()
             abbrev_reg = '^['
-            for a in abbrevs: abbrev_reg += a[0]
+            for a in config.abbrevs: abbrev_reg += a[0]
             abbrev_reg += ']+$'
-            if len(abbrevs) < 1: abbrev_reg = '^$' # if no abbrevs are set in config file
+            if len(config.abbrevs) < 1: abbrev_reg = '^$' # if no abbrevs are set in config file
             for i, s in enumerate(args.sources):
                 # A - First check if the source is a name in the config file
                 found_name = False
-                for n in names:
+                for n in config.names:
                     if s == n[0]:
                         args.sources[i] = n[1] # replace the source name with the path from the config file
                         found_name = True
@@ -120,7 +123,7 @@ def get_args(self):
                 # B - Then check if the source matches any of the abbrevs set in the config file
                 if re.match(abbrev_reg, s): # if a source contains only abbrev letters
                     for l in s: # loop through each letter of the source
-                        for a in abbrevs:
+                        for a in config.abbrevs:
                             if l == a[0]:
                                 args.sources.append(a[1]) # add the abbrev path to the end of the sources list
                                 break
@@ -128,7 +131,6 @@ def get_args(self):
                 # C - Otherwise treat source as a path
             args.sources = [s for s in args.sources if s is not None] # filter out elements that aren't needed
             args.sources = list(set(args.sources)) # removes duplicate paths from the sources list
-            args.names = names # include names in args so we don't have to call read_config() again to obtain
             for s in args.sources:
                 if not os.path.exists(s):
                     self.subs['snap'].error(f'source [{s}] not found')
@@ -136,11 +138,12 @@ def get_args(self):
                     self.subs['snap'].error(f'source [{s}] is not btrfs subvolume')
         case 'restore':
             subs = get_subvolumes(args.path)
+    args.config = config
     return args
 
 
 ###### Get argparse instance for handling supplied arguments
-def get_parser():
+def get_parser(config):
     main = CustomArgumentParser(prog='subv', description='A utility to help manage btrfs subvolumes', formatter_class=CustomHelpFormatter)
     main.subs = {}
     subs = main.add_subparsers(help='commands', dest='cmd')
@@ -154,11 +157,12 @@ def get_parser():
         listp_fields_help += f'\n  {f[0]}  {f[2]}'
         listp_all_fields_help += f[0]
     listp_all_fields_help += '\'. Will override FIELDS if set'
-    listp.add_argument('PATH', default='/', nargs='?', help='location of btrfs filesystem to list subvolumes from. Default is \'/\'')
+    listp.add_argument('PATH', default=config.path, nargs='?', help='location of btrfs filesystem to list subvolumes from. Default is defined in /etc/subv.conf, otherwise it\'s \'/\'')
     listp.add_argument('-f', '--fields', default='il', help=listp_fields_help)
     listp.add_argument('-o', '--order', default='i', help='ORDER is a series of letters indicating which fields to sort by. Uppercase letters will reverse the sort order. Default is \'i\'')
     listp.add_argument('-t', '--titles', action='store_true', help='display field titles on output')
     listp.add_argument('-a', '--all-fields', action='store_true', help=listp_all_fields_help)
+    listp.add_argument('-n', '--name', help='filter to only show subvolumes with NAME where NAME is defined in /etc/subv.conf')
     listp.add_argument('-p', '--filter-paths', action='store_true', help='filter to only show subvolumes that are under PATH')
     listp_mount = listp.add_mutually_exclusive_group()
     listp_mount.add_argument('-m', '--mounted', action='store_true', help='filter to only show subvolumes that are mounted')
@@ -193,21 +197,20 @@ def get_parser():
 
 ###### Gets a list of user defined sources from a config file
 def read_config():
+    config = Namespace(path='/', names=[], abbrevs=[])
     config_file = os.path.expandvars(config_path)
-    if not os.path.isfile(config_file): return [],[]
+    if not os.path.isfile(config_file): return config
     try:
-        names = []
-        abbrevs = []
-        config = configparser.ConfigParser()
-        config.read(config_file)
-        for key in config['names']:
-            names.append((key, config['names'][key]))
-        for key in config['abbrevs']:
-            abbrevs.append((key, config['abbrevs'][key]))
-        return names, abbrevs
+        config_parser = configparser.ConfigParser()
+        config_parser.read(config_file)
+        config.path = config_parser['settings']['default_path']
+        for key in config_parser['names']:
+            config.names.append((key, config_parser['names'][key]))
+        for key in config_parser['abbrevs']:
+            config.abbrevs.append((key, config_parser['abbrevs'][key]))
     except:
         print(f'WARNING: There was an issue reading {config_path}', file=sys.stderr)
-        return [],[]
+    return config
 
 
 ###### A helper function to execute a command and return it's results in a string
@@ -360,6 +363,7 @@ def exec_list(args):
     if args.subvolume: subs = [s for s in subs if s[7] == 'subvolume']
     if args.before: subs = [s for s in subs if s[4] < args.before]
     if args.after: subs = [s for s in subs if s[4] > args.after]
+    if args.name: subs = [s for s in subs if re.compile(fr'{args.name}\.\d{{8}}\.\d{{6}}$').search(s[3])]
     field_dictionary = {}
     for i,f in enumerate(fields):
         field_dictionary[f[0]] = i
@@ -395,7 +399,7 @@ def exec_snap(args):
     for src in args.sources:
         dest_name = src.replace('_', '__')
         dest_name = dest_name.replace('/', '_')
-        for n in args.names:
+        for n in args.config.names:
             if src == n[1]:
                 dest_name = n[0]
                 break
@@ -412,11 +416,12 @@ def exec_restore(args):
 
 ###### Program start
 def main():
-    parser = get_parser()
+    config = read_config()
+    parser = get_parser(config)
     if len(sys.argv) == 1: # if no arguments are supplied
         parser.print_help()
         exit(1)
-    args = parser.get_args()
+    args = parser.get_args(config)
     match(args.cmd):
         case 'list': exec_list(args)
         case 'snap': exec_snap(args)
