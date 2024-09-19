@@ -3,12 +3,15 @@
 ### Steps
 
 1. Boot from Live ISO
-2. `iwctl station wlan0 connect 'SSID'`
-3. `timedatectl set-ntp true`
-4. `pacman -Syy`
-5. `pacman -S git`
-6. Wait for reflector to finish in the background
-7. `efibootmgr` will list all boot managers. You can delete any of them with `efibootmgr -b # -B`
-8. `git clone https://github.com/wunderable/arch-install.git`
-10. `cd arch-install`
-11. `sh install.sh`
+2. `iwctl device list`
+3. `iwctl station wlan0 scan`
+4. `iwctl station wlan0 get-networks`
+5. `iwctl station wlan0 connect 'SSID'`
+6. `timedatectl set-ntp true`
+7. `pacman -Syy`
+8. `pacman -S git`
+9. Wait for reflector to finish in the background
+10. `efibootmgr` will list all boot managers. You can delete any of them with `efibootmgr -b # -B`
+11. `git clone https://github.com/wunderable/arch-install.git`
+12. `cd arch-install`
+13. `sh install.sh`
