@@ -2,6 +2,7 @@
 
 import re
 import sys
+import shutil
 import os.path
 import argparse
 import subprocess
@@ -9,16 +10,17 @@ import configparser
 from datetime import datetime
 from argparse import Namespace
 
-fields = [
-          ('i', 'ID',       'id'),                                      # id
-          ('p', 'PID',      'parent\'s id'),                            # pid
-          ('n', 'Name',     'name'),                                    # name
-          ('l', 'Loc',      'location'),                                # loc
-          ('t', 'Time',     'datetime'),                                # time
-          ('m', 'Mount',    'mount type'),                              # mnt
-          ('r', 'Read',     'permissions (read-write or read-only)'),   # read
-          ('s', 'Snap',     'type (subvolume or snapshot)')             # snap
-        ]
+fields = {
+#Letter:   Title     Description
+    'i': ('ID',     'id'),
+    'p': ('PID',    'parent\'s id'),
+    'n': ('Name',   'name'),
+    'l': ('Loc',    'location'),
+    't': ('Time',   'datetime'),
+    'm': ('Mount',  'mount type'),
+    'r': ('Read',   'permissions (read-write or read-only)'),
+    's': ('Snap',   'type (subvolume or snapshot)')
+}
 
 config_path = '/etc/subv.conf'
 
@@ -81,69 +83,75 @@ def create_aliases(cmd):
     return aliases
 
 
+###### Tests if a path exists and is a btrfs, displays error messages and exits on failures
+def check_btrfs_path(self, path):
+    if not os.path.exists(path):
+        self.error(f'path [{path}] not found')
+    if os.stat(path).st_ino != 256:
+        self.error(f'path [{path}] is not btrfs')
+
+
 ###### Parses args using argparse and has some additional validation that argparse can't natively handle. Returns args
 def get_args(self, config):
     args = self.parse_args()
+    # Set cmd to full string if an alias was used
     if args.cmd in create_aliases('list'): args.cmd = 'list'
     if args.cmd in create_aliases('snap'): args.cmd = 'snap'
     if args.cmd in create_aliases('restore'): args.cmd = 'restore'
     match(args.cmd):
         case 'list':
-            args.path = args.PATH
-            if not os.path.exists(args.path):
-                self.subs['list'].error(f'path [{args.path}] not found')
-            if os.stat(args.path).st_ino != 256:
-                self.subs['list'].error(f'path [{args.path}] is not btrfs')
-            field_str = ''
-            for f in fields: field_str += f[0]
+            # Verify path exists and is btrfs
+            self.subs['list'].check_btrfs_path(args.path)
+            # Verify FIELDS and ORDER only use allowed letters
+            field_str = ''.join(fields.keys())
             field_reg = f'^[{field_str}]+$'
             if not re.match(field_reg, args.fields):
                 self.subs['list'].error(f'unknown value [{args.fields}] for FIELDS')
             if not re.match(field_reg, args.order, re.IGNORECASE):
                 self.subs['list'].error(f'unknown value [{args.order}] for ORDER')
+            # Override fields with all fields, if option is set
             if args.all_fields:
                 args.fields = field_str
+            # Verify name exists in config file
             if args.name is not None:
-                if not any(name[0] == args.name for name in config.names):
+                if args.name not in config.locs:
                     self.subs['list'].error(f'unknown value [{args.name}] for NAME')
         case 'snap':
-            abbrev_reg = '^['
-            for a in config.abbrevs: abbrev_reg += a[0]
-            abbrev_reg += ']+$'
-            if len(config.abbrevs) < 1: abbrev_reg = '^$' # if no abbrevs are set in config file
-            for i, s in enumerate(args.sources):
-                # A - First check if the source is a name in the config file
-                found_name = False
-                for n in config.names:
-                    if s == n[0]:
-                        args.sources[i] = n[1] # replace the source name with the path from the config file
-                        found_name = True
-                        break
-                if found_name: continue
-                # B - Then check if the source matches any of the abbrevs set in the config file
-                if re.match(abbrev_reg, s): # if a source contains only abbrev letters
-                    for l in s: # loop through each letter of the source
-                        for a in config.abbrevs:
-                            if l == a[0]:
-                                args.sources.append(a[1]) # add the abbrev path to the end of the sources list
-                                break
-                    args.sources[i] = None # set the sources element to None so it can be filtered out
-                # C - Otherwise treat source as a path
-            args.sources = [s for s in args.sources if s is not None] # filter out elements that aren't needed
-            args.sources = list(set(args.sources)) # removes duplicate paths from the sources list
-            for s in args.sources:
-                if not os.path.exists(s):
-                    self.subs['snap'].error(f'source [{s}] not found')
-                if not execute(f'ls -id {s}').split()[0] == '256':
-                    self.subs['snap'].error(f'source [{s}] is not btrfs subvolume')
+            # Convert locations (named in config file) to paths
+            for i, src in enumerate(args.sources):
+                if src in config.locs:
+                    args.sources[i] = config.locs[src]
+            # Remove duplicate paths from sources list
+            args.sources = list(set(args.sources))
+            # Verify sources exist and are btrfs
+            for src in args.sources:
+                self.subs['snap'].check_btrfs_path(src)
         case 'restore':
-            subs = get_subvolumes(args.path)
+            # If src is a number, convert it to a location
+            if re.match(r'^\d+$', args.src):
+                self.subs['restore'].check_btrfs_path(args.path)
+                subs = get_subvolumes(args.path) # [(id, pid, name, loc, time, mnt, read, snap)]
+                sub_dict = {sub[0]: sub[3] for sub in subs} # {id: loc}
+                if int(args.src) not in sub_dict:
+                    self.subs['restore'].error(f'subvolume with id [{i}] not found')
+                args.src = sub_dict[int(args.src)]
+            # Verify src exists and is btrfs
+            self.subs['restore'].check_btrfs_path(args.src)
+            # If dest isn't set, try to set it
+            if args.dest is None:
+                self.subs['restore'].error('Currently a destination is required to restore to')
+#                match = re.search(fr'{config.dest}/\d{{4}}-\d\d-\d\d(?:_[^/]+)?/([^/]+)\.\d{{8}}\.\d{{6}}$', args.src)
+#                if not match: self.subs['restore'].error('Unable to determine dest for restore')
+#                name = match.group(1)
+#                args.dest = config.path + config.locs[name] if name in config.locs else name_to_path(name)
+#                args.dest = args.dest.replace('//', '/')
     args.config = config
     return args
 
 
 ###### Get argparse instance for handling supplied arguments
 def get_parser(config):
+    # Main parser
     main = CustomArgumentParser(prog='subv', description='A utility to help manage btrfs subvolumes', formatter_class=CustomHelpFormatter)
     main.subs = {}
     subs = main.add_subparsers(help='commands', dest='cmd')
@@ -152,12 +160,9 @@ def get_parser(config):
     listp = subs.add_parser('list', aliases=create_aliases('list'), help='list all subvolumes under /', description='Outputs a list of subvolumes in a btrfs filesystem', formatter_class=CustomHelpFormatter)
     main.subs['list'] = listp
     listp_fields_help = 'R|FIELDS is a series of letters that refer to the fields that will be displayed and in what order. Default is \'il\'. Fields can be:'
-    listp_all_fields_help = 'all fields will be displayed. Equivelant to setting FIELDS to \''
-    for f in fields:
-        listp_fields_help += f'\n  {f[0]}  {f[2]}'
-        listp_all_fields_help += f[0]
-    listp_all_fields_help += '\'. Will override FIELDS if set'
-    listp.add_argument('PATH', default=config.path, nargs='?', help='location of btrfs filesystem to list subvolumes from. Default is defined in /etc/subv.conf, otherwise it\'s \'/\'')
+    for f in fields: listp_fields_help += f'\n  {f}  {fields[f][1]}'
+    listp_all_fields_help = 'all fields will be displayed. Equivelant to setting FIELDS to \'' + ''.join(fields.keys()) + '\'. Will override FIELDS if set'
+    listp.add_argument('path', default=config.path, nargs='?', help='location of btrfs filesystem to list subvolumes from. Default is defined in /etc/subv.conf, otherwise it\'s \'/\'')
     listp.add_argument('-f', '--fields', default='il', help=listp_fields_help)
     listp.add_argument('-o', '--order', default='i', help='ORDER is a series of letters indicating which fields to sort by. Uppercase letters will reverse the sort order. Default is \'i\'')
     listp.add_argument('-t', '--titles', action='store_true', help='display field titles on output')
@@ -186,31 +191,32 @@ def get_parser(config):
     # Restore subparser
     restp = subs.add_parser('restore', aliases=create_aliases('restore'), help='restore an earlier snapshot', formatter_class=CustomHelpFormatter)
     main.subs['restore'] = restp
-    restp.add_argument('-p', '--path', default='/', help='path to find the snapshot ids under. Default is \'/\'')
-    restp.add_argument('-k', '--keep-current', action='store_true', help='creates a snapshot of the location before restoring it to a previous version')
-    restp.add_argument('ids', nargs='*', help='space-separated list of ids of the snapshots to restore')
+    restp.add_argument('src', help='subvolume to restore; either it\'s id or location')
+    restp.add_argument('dest', nargs='?', help='destination to restore subvolume to. If ommitted, subv attempts to guess based on src')
+    restp.add_argument('-p', '--path', default=config.path, help='path to find the snapshot ids under. Default is defined in /etc/subv.conf, otherwise it\'s \'/\'')
 
     # Add a function that can be called on our instansiated objects
     argparse.ArgumentParser.get_args = get_args
+    argparse.ArgumentParser.check_btrfs_path = check_btrfs_path
     return main
 
 
 ###### Gets a list of user defined sources from a config file
 def read_config():
-    config = Namespace(path='/', names=[], abbrevs=[])
+    config = Namespace(path='/', dest='/snapshots', locs={})
     config_file = os.path.expandvars(config_path)
     if not os.path.isfile(config_file): return config
     try:
         config_parser = configparser.ConfigParser()
         config_parser.read(config_file)
-        if 'settings' in config_parser and 'default_path' in config_parser['settings']:
-            config.path = config_parser['settings']['default_path']
-        if 'names' in config_parser:
-            for key in config_parser['names']:
-                config.names.append((key, config_parser['names'][key]))
-        if 'abbrevs' in config_parser:
-            for key in config_parser['abbrevs']:
-                config.abbrevs.append((key, config_parser['abbrevs'][key]))
+        if 'settings' in config_parser:
+            if 'default_path' in config_parser['settings']:
+                config.path = config_parser['settings']['default_path']
+            if 'snapshot_dest' in config_parser['settings']:
+                config.dest = config_parser['settings']['snapshot_dest']
+        if 'locations' in config_parser:
+            for key in config_parser['locations']:
+                config.locs[key] = config_parser['locations'][key]
     except:
         print(f'WARNING: There was an issue reading {config_path}', file=sys.stderr)
     return config
@@ -282,7 +288,7 @@ def get_details(path):
         name = '-'
         time = '-'
         mount = True
-    return [name, time, mount] # (name, time, mount)
+    return [name, time, mount] # [name, time, mount]
 
 
 ###### Creates a 2d array of subvolume info by combining the output of multiple system calls
@@ -325,7 +331,7 @@ def get_subvolumes(path):
             details[0] = sub[2].rsplit('/', 1)[-1] if sub[0] != '5' else '<FS_TREE>'
         if details[2]: mnt = execute(f'findmnt -nl {loc}').split()[2] # subvolume is mounted as another mount type, get that type
         subvolumes.append((int(sub[0]), int(sub[1]), details[0], loc, details[1], mnt, r, typ))
-    return subvolumes # (id, pid, name, loc, time, mnt, read, snap)
+    return subvolumes # [(id, pid, name, loc, time, mnt, read, snap)]
 
 
 ###### Prints a 2d array to stdout
@@ -354,6 +360,21 @@ def print_2d(arr, spaces=1, header=None):
         print()
 
 
+
+###### Utility function to escape slashes in paths
+def path_to_name(path):
+    name = path.replace('_', '__')
+    name = name.replace('/', '_')
+    return name
+
+
+###### Utility function to unescape slashes in paths
+def name_to_path(name):
+    path = name.replace('_', '/')
+    path = path.replace('//', '_')
+    return path
+
+
 ###### Display list of subvolumes
 def exec_list(args):
     subs = get_subvolumes(args.path) # (id, pid, name, loc, time, mnt, read, snap)
@@ -369,7 +390,7 @@ def exec_list(args):
     if args.name: subs = [s for s in subs if re.compile(fr'{args.name}\.\d{{8}}\.\d{{6}}$').search(s[3])]
     field_dictionary = {}
     for i,f in enumerate(fields):
-        field_dictionary[f[0]] = i
+        field_dictionary[f] = i
     for o in reversed(args.order):
         if o.islower():
             subs.sort(key = lambda x: x[field_dictionary[o]])
@@ -384,7 +405,7 @@ def exec_list(args):
     if args.titles:
         header = []
         for f in args.fields:
-            header.append(fields[field_dictionary[f]][1])
+            header.append(fields[f][0])
     else:
         header = None
     print_2d(out, 3, header)
@@ -394,17 +415,16 @@ def exec_list(args):
 ###### Create snapshot(s)
 def exec_snap(args):
     now = datetime.now()
-    dest_dir = '/snapshots/' + now.strftime('%Y-%m-%d')
+    dest_dir = args.config.dest + '/' + now.strftime('%Y-%m-%d')
     ext = now.strftime('%Y%m%d.%H%M%S')
     if args.name != None: dest_dir += '_' + args.name
     execute(f'sudo mkdir -p {dest_dir}')
     r = '-r' if args.read_only else ''
     for src in args.sources:
-        dest_name = src.replace('_', '__')
-        dest_name = dest_name.replace('/', '_')
-        for n in args.config.names:
-            if src == n[1]:
-                dest_name = n[0]
+        dest_name = path_to_name(src)
+        for name in args.config.locs:
+            if src == args.config.locs[name]:
+                dest_name = name
                 break
         dest = f'{dest_dir}/{dest_name}.{ext}'
         execute(f'sudo btrfs subvolume snapshot {r} {src} {dest}')
@@ -413,7 +433,9 @@ def exec_snap(args):
 
 ###### Restore to an earlier snapshot
 def exec_restore(args):
-    print('restore')
+    os.rename(args.dest, f'{args.dest}.bak')
+    execute(f'sudo btrfs subvolume snapshot {args.src} {args.dest}')
+    shutil.rmtree(f'{args.dest}.bak')
     exit(0)
 
 

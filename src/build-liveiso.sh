@@ -17,7 +17,7 @@ cp -r /usr/share/archiso/configs/baseline /tmp
 mv /tmp/baseline /tmp/iso
 
 # Add additional packages
-echo -e 'btrfs-progs\niwd\nvim' >> /tmp/iso/packages.x86_64
+echo -e 'git\nbtrfs-progs\niwd\nvim' >> /tmp/iso/packages.x86_64
 
 # Enable autologin
 mkdir -p /tmp/iso/airootfs/etc/systemd/system/getty@tty1.service.d
@@ -52,10 +52,11 @@ done
 tee /tmp/iso/airootfs/etc/subv.conf <<-END
 	[settings]
 	default_path = /mnt
+	snapshot_dest = /mnt/snapshots
 
 	[names]
-
-	[abbrevs]
+	root = /mnt/@root
+	home = /mnt/@home
 END
 
 # Allow ISO to be mounted via loop
