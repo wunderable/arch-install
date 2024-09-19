@@ -325,7 +325,7 @@ tee /etc/subv.conf <<-"END"
 	default_path = /
 	snapshot_dest = /snapshots
 
-	[names]
+	[locations]
 	root = /
 	home = /home
 END
