@@ -1,17 +1,28 @@
 # arch-install
 
-### Steps
+## 1. Boot from Live ISO
 
-1. Boot from Live ISO
-2. `iwctl device list`
-3. `iwctl station wlan0 scan`
-4. `iwctl station wlan0 get-networks`
-5. `iwctl station wlan0 connect 'SSID'`
-6. `timedatectl set-ntp true`
-7. `pacman -Syy`
-8. `pacman -S git`
-9. Wait for reflector to finish in the background
-10. `efibootmgr` will list all boot managers. You can delete any of them with `efibootmgr -b # -B`
-11. `git clone https://github.com/wunderable/arch-install.git`
-12. `cd arch-install`
-13. `sh install.sh`
+## 2. Connect to internet
+If using wifi:
+Get a list of devices `iwctl device list`
+Scan for networks `iwctl station <wlan> scan`
+View networks `iwctl station <wlan> get-networks`
+Connect to network `iwctl station <wlan> connect <ssid>`
+
+## 3. Verify date/time
+`timedatectl set-ntp true`
+`date`
+
+## 4. Install git
+Ensure repos are up-to-date `pacman -Syy`
+Install git `pacman -S git`
+
+## 5. (Optional) Delete grub
+`efibootmgr -b 0 -B`
+
+## 6. Clone repository
+`git clone https://github.com/wunderable/arch-install.git`
+
+## 7. Install
+`cd arch-install`
+`sh install.sh`
