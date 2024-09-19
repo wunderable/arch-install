@@ -271,6 +271,7 @@ build-liveiso
 # Set prompt and aliases for shells
 sed -i '/^\s*PS1=/asource /etc/profile.d/prompt.sh || true' /etc/bash.bashrc
 echo 'source /etc/profile.d/aliases.sh || true' >> /etc/bash.bashrc
+cp /etc/bash.bashrc /etc/skel/.bashrc
 
 #########
 # USERS #
@@ -322,14 +323,11 @@ rm /etc/sudoers.d/nopass
 tee /etc/subv.conf <<-"END"
 	[settings]
 	default_path = /
+	snapshot_dest = /snapshots
 
 	[names]
 	root = /
 	home = /home
-
-	[abbrevs]
-	r = /
-	h = /home
 END
 
 #############################
