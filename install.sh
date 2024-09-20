@@ -330,6 +330,14 @@ tee /etc/subv.conf <<-"END"
 	home = /home
 END
 
+##########
+# VSCODE #
+##########
+
+# Pass touch events to electron when launching code
+sed -i 's|Exec=/usr/bin/code\(.*\)|Exec=/usr/bin/code --touch-events\1|' /usr/share/applications/code.desktop
+sed -i 's|Exec=/usr/bin/code\(.*\)|Exec=/usr/bin/code --touch-events\1|' /usr/share/applications/code-url-handler.desktop
+
 #############################
 # GREETER / DISPLAY MANAGER #
 #############################
