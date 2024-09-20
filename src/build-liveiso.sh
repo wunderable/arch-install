@@ -54,7 +54,7 @@ tee /tmp/iso/airootfs/etc/subv.conf <<-END
 	default_path = /mnt
 	snapshot_dest = /mnt/snapshots
 
-	[names]
+	[locations]
 	root = /mnt/@root
 	home = /mnt/@home
 END
