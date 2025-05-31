@@ -90,6 +90,28 @@ OPTIONS='rw,noatime,discard=async,compress-force=zstd:1,space_cache=v2'
 # PREPARE DISK #
 ################
 
+# Get current partitions (if any)
+CUR_PARTS=$(lsblk -lno NAME "$DEV" | grep -v "^$(basename $DEV)$")
+
+# Unmount all partitions
+for CUR_PART in $CUR_PARTS; do
+	MOUNT_POINT=$(findmnt -n -o TARGET "/dev/$CUR_PART" || true)
+ 	if [[ -n "$MOUNT_POINT" ]]; then
+  		umount -R "/dev/$CUR_PART"
+    	fi
+done
+
+# Close any LUKS mappings
+for CUR_PART in $CUR_PARTS; do
+	if cryptsetup isLuks "/dev/$CUR_PART" 2>/dev/null; then
+ 		MAPS=$(lsblk -lno NAME,TYPE | awk '$2=="crypt" {print $1}')
+   		for MAP in $MAPS; do
+     			cryptsetup luksClose "$MAP" || true
+		done
+  		cryptsetup luksErase "/dev/$CUR_PARTS"
+    	fi
+done
+
 # Create partitions
 wipefs --all --force $DEV
 sgdisk --zap-all --clear $DEV
