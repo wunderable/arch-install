@@ -115,7 +115,7 @@ done
 # Create partitions
 wipefs --all --force $DEV
 sgdisk --zap-all --clear $DEV
-sgdisk -n 0:0:+1536MiB -t 0:ef00 -c 0:esp $DEV
+sgdisk -n 0:0:+2048MiB -t 0:ef00 -c 0:esp $DEV
 sgdisk -n 0:0:0 -t 0:8309 -c 0:luks $DEV
 
 # Format partitions
