@@ -119,13 +119,13 @@ sgdisk -n 0:0:+2048MiB -t 0:ef00 -c 0:esp $DEV
 sgdisk -n 0:0:0 -t 0:8309 -c 0:luks $DEV
 
 # Format partitions
-echo -n $LUKS_PASS | cryptsetup --type luks1 luksFormat $PART2 -
-echo -n $LUKS_PASS | cryptsetup open $PART2 root -
+echo -n $LUKS_PASS | cryptsetup luksFormat $PART2 -
+echo -n $LUKS_PASS | cryptsetup open $PART2 cryptroot -
 mkfs.vfat -F32 -n BOOT $PART1
-mkfs.btrfs -L ROOT /dev/mapper/root
+mkfs.btrfs -L ROOT /dev/mapper/cryptroot
 
 # Create subvolumes
-mount /dev/mapper/root /mnt
+mount /dev/mapper/cryptroot /mnt
 btrfs sub create /mnt/@root
 btrfs sub create /mnt/@home
 btrfs sub create /mnt/@snapshots
@@ -138,12 +138,12 @@ btrfs sub create /mnt/@root/var/tmp
 umount /mnt
 
 # Mount partitions
-mount -o "${OPTIONS},subvol=@root" /dev/mapper/root /mnt
+mount -o "${OPTIONS},subvol=@root" /dev/mapper/cryptroot /mnt
 mkdir -p /mnt/{boot,home,etc,snapshots,var/log,swap}
-mount -o "${OPTIONS},subvol=@home" /dev/mapper/root /mnt/home
-mount -o "${OPTIONS},subvol=@snapshots" /dev/mapper/root /mnt/snapshots
-mount -o "${OPTIONS},subvol=@log" /dev/mapper/root /mnt/var/log
-mount -o "${OPTIONS},subvol=@swap" /dev/mapper/root /mnt/swap
+mount -o "${OPTIONS},subvol=@home" /dev/mapper/cryptroot /mnt/home
+mount -o "${OPTIONS},subvol=@snapshots" /dev/mapper/cryptroot /mnt/snapshots
+mount -o "${OPTIONS},subvol=@log" /dev/mapper/cryptroot /mnt/var/log
+mount -o "${OPTIONS},subvol=@swap" /dev/mapper/cryptroot /mnt/swap
 mount $PART1 /mnt/boot
 
 # Disable CoW for some directories
@@ -163,7 +163,7 @@ swapon /mnt/swap/swapfile
 
 # Install packages
 reflector --verbose --protocol https --latest 5 --sort rate --country 'United States' --save /etc/pacman.d/mirrorlist
-pacstrap -K /mnt base linux linux-firmware $UCODE btrfs-progs networkmanager vim man-db man-pages base-devel git grub efibootmgr
+pacstrap -K /mnt base linux linux-firmware $UCODE btrfs-progs networkmanager vim man-db man-pages base-devel git efibootmgr
 
 # Generate fstab file
 genfstab -U /mnt >> /mnt/etc/fstab
@@ -229,6 +229,23 @@ for FILE in /usr/local/src/*; do
 	ln -s $FILE /usr/local/bin/$NAME
 done
 
+################
+# SYSTEMD-BOOT #
+################
+
+bootctl install
+echo -e "default arch/ntimeout 2\neditor no" > /boot/loader/loader.conf
+PART2_ID="$(blkid -s UUID -o value <$PART2>)"
+SWAP_ID="$(findmnt -no UUID -T /swap/swapfile)"
+SWAP_OFFSET="$(btrfs inspect-internal man-swapfile -r /swwap/swapfile)"
+tee /boot/loader/entries/arch.conf <<-"END"
+	title	Arch Linux
+ 	linux	/vmlinuz-linux
+  	initrd	/<$UCODE>
+   	initrd	/initramfs-linux.img
+	options	rd.luks.name=UUID=$PART_ID=cryptroot root=/dev/mapper/cryptroot rootflags=subvol=@root rootfstype=btrfs resume=UUID=$SWAP_ID resume_offset=$SWAP_OFFSET
+ END
+
 ##############
 # MKINITCPIO #
 ##############
@@ -247,44 +264,44 @@ mkinitcpio -P
 ########
 
 # Prepare GRUB file
-awk \
-	-vFPAT='([^=]*)|("[^"]+")' \
-	-vOFS== \
-	-vPART_ID="$(blkid -s UUID -o value <$PART2>)" \
-	-vSWAP_ID="$(findmnt -no UUID -T /swap/swapfile)" \
-	-vSWAP_OFFSET="$(btrfs inspect-internal map-swapfile -r /swap/swapfile)" \
-	'{
-		if($1=="GRUB_TIMEOUT")
-			$2="2";
-		if($1=="GRUB_CMDLINE_LINUX_DEFAULT")
-			$2="\"cryptdevice=UUID=" PART_ID ":root root=/dev/mapper/root rootflags=subvol=@root resume=UUID=" SWAP_ID " resume_offset=" SWAP_OFFSET " loglevel=3 quiet\"";
-		print
-	}' /etc/default/grub > /etc/default/grub.new
-mv /etc/default/grub.new /etc/default/grub
-
+#awk \
+#	-vFPAT='([^=]*)|("[^"]+")' \
+#	-vOFS== \
+#	-vPART_ID="$(blkid -s UUID -o value <$PART2>)" \
+#	-vSWAP_ID="$(findmnt -no UUID -T /swap/swapfile)" \
+#	-vSWAP_OFFSET="$(btrfs inspect-internal map-swapfile -r /swap/swapfile)" \
+#	'{
+#		if($1=="GRUB_TIMEOUT")
+#			$2="2";
+#		if($1=="GRUB_CMDLINE_LINUX_DEFAULT")
+#			$2="\"cryptdevice=UUID=" PART_ID ":root root=/dev/mapper/root rootflags=subvol=@root resume=UUID=" SWAP_ID " resume_offset=" SWAP_OFFSET " loglevel=3 quiet\"";
+#		print
+#	}' /etc/default/grub > /etc/default/grub.new
+#mv /etc/default/grub.new /etc/default/grub
+#
 # Install GRUB
-grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
-
+#grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
+#
 # Customize GRUB
-tee -a /etc/grub.d/40_custom <<-"END"
-	menuentry 'Live ISO' --class disc --class iso {
-	    set imgdevpath='/dev/disk/by-uuid/xxxx-xxxx'
-	    set isofile='/iso/liveiso.iso'
-	    loopback loop $isofile
-	    linux (loop)/arch/boot/x86_64/vmlinuz-linux img_dev=$imgdevpath img_loop=$isofile earlymodules=loop
-	    initrd (loop)/arch/boot/intel-ucode.img (loop)/arch/boot/x86_64/initramfs-linux.img
-	}
-END
-mkdir /boot/iso
-sed -i "/submenu.*Advanced options/,/is_top_level=false/s/^/#REMOVE_ADVANCED_OPTIONS#/" /etc/grub.d/10_linux
-sed -i "/linux_entry.*advanced/,/done/{/done/b;s/^/#REMOVE_ADVACNED_OPTIONS#/}" /etc/grub.d/10_linux
-sed -i "s/\(menuentry '\$LABEL'\)/\1 --class driver/" /etc/grub.d/30_uefi-firmware
-sed -i "s/xxxx-xxxx/$(blkid -s UUID -o value <$PART1>)/" /etc/grub.d/40_custom
-sed -i 's/^\s+/\t/' /etc/grub.d/40_custom
-
+#tee -a /etc/grub.d/40_custom <<-"END"
+#	menuentry 'Live ISO' --class disc --class iso {
+#	    set imgdevpath='/dev/disk/by-uuid/xxxx-xxxx'
+#	    set isofile='/iso/liveiso.iso'
+#	    loopback loop $isofile
+#	    linux (loop)/arch/boot/x86_64/vmlinuz-linux img_dev=$imgdevpath img_loop=$isofile earlymodules=loop
+#	    initrd (loop)/arch/boot/intel-ucode.img (loop)/arch/boot/x86_64/initramfs-linux.img
+#	}
+#END
+#mkdir /boot/iso
+#sed -i "/submenu.*Advanced options/,/is_top_level=false/s/^/#REMOVE_ADVANCED_OPTIONS#/" /etc/grub.d/10_linux
+#sed -i "/linux_entry.*advanced/,/done/{/done/b;s/^/#REMOVE_ADVACNED_OPTIONS#/}" /etc/grub.d/10_linux
+#sed -i "s/\(menuentry '\$LABEL'\)/\1 --class driver/" /etc/grub.d/30_uefi-firmware
+#sed -i "s/xxxx-xxxx/$(blkid -s UUID -o value <$PART1>)/" /etc/grub.d/40_custom
+#sed -i 's/^\s+/\t/' /etc/grub.d/40_custom
+#
 # Update GRUB
-grub-mkconfig -o /boot/grub/grub.cfg
-build-liveiso
+#grub-mkconfig -o /boot/grub/grub.cfg
+#build-liveiso
 
 #########
 # SHELL #
@@ -392,6 +409,7 @@ sed -i "s/<\$PART1>/${PART1//\//\\\/}/g" /mnt/install.sh
 sed -i "s/<\$PART2>/${PART2//\//\\\/}/g" /mnt/install.sh
 sed -i "s/<\$USER>/$USER/g" /mnt/install.sh
 sed -i "s/<\$USER_PASS>/$USER_PASS/g" /mnt/install.sh
+sed -i "s/<\$UCODE>/$UCODE/g" /mnt/install.sh
 
 # Run the chrooted install file
 arch-chroot /mnt sh install.sh
