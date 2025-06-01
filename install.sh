@@ -235,16 +235,16 @@ done
 
 bootctl install
 echo -e "default arch/ntimeout 2\neditor no" > /boot/loader/loader.conf
-PART2_ID="$(blkid -s UUID -o value <$PART2>)"
+PART_ID="$(blkid -s UUID -o value <$PART2>)"
 SWAP_ID="$(findmnt -no UUID -T /swap/swapfile)"
-SWAP_OFFSET="$(btrfs inspect-internal man-swapfile -r /swwap/swapfile)"
-tee /boot/loader/entries/arch.conf <<-"END"
+SWAP_OFFSET="$(btrfs inspect-internal map-swapfile -r /swap/swapfile)"
+tee /boot/loader/entries/arch.conf <<-END
 	title	Arch Linux
  	linux	/vmlinuz-linux
   	initrd	/<$UCODE>
    	initrd	/initramfs-linux.img
 	options	rd.luks.name=UUID=$PART_ID=cryptroot root=/dev/mapper/cryptroot rootflags=subvol=@root rootfstype=btrfs resume=UUID=$SWAP_ID resume_offset=$SWAP_OFFSET
- END
+END
 
 ##############
 # MKINITCPIO #
