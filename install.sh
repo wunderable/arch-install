@@ -10,6 +10,7 @@ LUKS_PASS=''	# The password to unlock encrypted partition
 USER=''		# Username of primary user
 USER_PASS=''	# Password of primary user and root
 HOST=''		# Hostname of the computer
+GUI=''		# Whether or not to include a GUI (y or n)
 
 #########################
 # SET MISSING VARIABLES #
@@ -61,6 +62,16 @@ fi
 # Ask for hostname (if $HOST isn't already set)
 if [ -z "$HOST" ]; then
 	read -p "Enter the desired hostname: " HOST
+fi
+
+# Ask to include a GUI
+if [ -z "$GUI" ]; then
+	while true; do
+ 		read -p "Install a GUI? (y/n): " GUI
+   		echo
+     		if [[ "$GUI" == "y" || "$GUI" == "n" ]]; then break; fi
+       		echo "Invalid response"
+	 done
 fi
 
 ######################
@@ -330,7 +341,10 @@ sed -Ei "s/^# (%wheel ALL=\(ALL:ALL\) ALL)/\1/" /etc/sudoers
 sed -i "s/#Color/Color/" /etc/pacman.conf
 
 # Install packages with pacman
-pacman --noconfirm -S acpid greetd greetd-tuigreet gtk4 hyprland kitty neofetch python3 spotify-launcher ttf-joypixels ttf-roboto-mono-nerd vivaldi vivaldi-ffmpeg-codecs zsh # upower pipewire wireplumber alsa-utils
+pacman --noconfirm -S acpid python3 zsh # upower pipewire wireplumber alsa-utils
+if [[ "<$GUI>" == "y" ]]; then
+	pacman --noconfirm -S greetd greetd-tuigreet gtk4 hyprland kitty neofetch spotify-launcher ttf-joypixels ttf-roboto-mono-nerd vivaldi vivaldi-ffmpeg-codecs
+fi
 
 #######
 # YAY #
@@ -351,7 +365,9 @@ rm -r --interactive=never yay
 
 # Install packages with yay
 sudo -u <$USER> yay --noconfirm -Syu
-sudo -u <$USER> yay --noconfirm -S anyrun-git visual-studio-code-bin
+if [[ "<$GUI>" == "y" ]]; then
+	sudo -u <$USER> yay --noconfirm -S anyrun-git visual-studio-code-bin
+fi
 rm /etc/sudoers.d/nopass
 
 ########
@@ -373,23 +389,27 @@ END
 # VSCODE #
 ##########
 
-# Pass touch events to electron when launching code
-sed -i 's|Exec=/usr/bin/code\(.*\)|Exec=/usr/bin/code --touch-events\1|' /usr/share/applications/code.desktop
-sed -i 's|Exec=/usr/bin/code\(.*\)|Exec=/usr/bin/code --touch-events\1|' /usr/share/applications/code-url-handler.desktop
+if [[ "<$GUI>" == "y" ]]; then
+	# Pass touch events to electron when launching code
+	sed -i 's|Exec=/usr/bin/code\(.*\)|Exec=/usr/bin/code --touch-events\1|' /usr/share/applications/code.desktop
+	sed -i 's|Exec=/usr/bin/code\(.*\)|Exec=/usr/bin/code --touch-events\1|' /usr/share/applications/code-url-handler.desktop
+fi
 
 #############################
 # GREETER / DISPLAY MANAGER #
 #############################
 
-systemctl enable greetd
-tee /etc/greetd/config.toml <<-"END"
-	[terminal]
-	vt = 1
-
-	[default_session]
-	command = "tuigreet --time --time-format '%A, %B %-d %I:%M' --remember --user-menu --cmd 'Hyprland > /dev/null' --theme 'time=cyan;border=cyan;title=magenta;button=yellow'"
-	user = "greeter"
-END
+if [[ "<$GUI>" == "y" ]]; then
+	systemctl enable greetd
+	tee /etc/greetd/config.toml <<-"END"
+		[terminal]
+		vt = 1
+	
+		[default_session]
+		command = "tuigreet --time --time-format '%A, %B %-d %I:%M' --remember --user-menu --cmd 'Hyprland > /dev/null' --theme 'time=cyan;border=cyan;title=magenta;button=yellow'"
+		user = "greeter"
+	END
+fi
 
 ########
 # MISC #
@@ -410,6 +430,7 @@ sed -i "s/<\$PART2>/${PART2//\//\\\/}/g" /mnt/install.sh
 sed -i "s/<\$USER>/$USER/g" /mnt/install.sh
 sed -i "s/<\$USER_PASS>/$USER_PASS/g" /mnt/install.sh
 sed -i "s/<\$UCODE>/$UCODE/g" /mnt/install.sh
+sed -i "s/<\$GUI>/$GUI/g" /mnt/install.sh
 
 # Run the chrooted install file
 arch-chroot /mnt sh install.sh
@@ -418,13 +439,15 @@ arch-chroot /mnt sh install.sh
 # COPY FILES #
 ##############
 
-# Hyprland
-mkdir -p /mnt/home/$USER/.config/hypr
-cp $DIR/files/hypr/hyprland.conf /mnt/home/$USER/.config/hypr/hyprland.conf
-
-# Kitty
-mkdir -p /mnt/home/$USER/.config/kitty
-cp $DIR/files/kitty/kitty.conf /mnt/home/$USER/.config/kitty/kitty.conf
+if [[ "$GUI" == "y" ]]; then
+	# Hyprland
+	mkdir -p /mnt/home/$USER/.config/hypr
+	cp $DIR/files/hypr/hyprland.conf /mnt/home/$USER/.config/hypr/hyprland.conf
+	
+	# Kitty
+	mkdir -p /mnt/home/$USER/.config/kitty
+	cp $DIR/files/kitty/kitty.conf /mnt/home/$USER/.config/kitty/kitty.conf
+fi
 
 # Shell
 cp $DIR/files/shell/aliases.sh /mnt/etc/profile.d/aliases.sh
