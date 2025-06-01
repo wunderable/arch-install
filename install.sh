@@ -254,7 +254,7 @@ tee /boot/loader/entries/arch.conf <<-END
  	linux	/vmlinuz-linux
   	initrd	/<$UCODE>.img
    	initrd	/initramfs-linux.img
-	options	cryptdevice=UUID=$PART_ID=cryptroot root=/dev/mapper/cryptroot rootflags=subvol=@root rootfstype=btrfs resume=UUID=$SWAP_ID resume_offset=$SWAP_OFFSET
+	options	cryptdevice=UUID=$PART_ID:cryptroot root=/dev/mapper/cryptroot rootflags=subvol=@root rootfstype=btrfs resume=UUID=$SWAP_ID resume_offset=$SWAP_OFFSET
 END
 
 ##############
