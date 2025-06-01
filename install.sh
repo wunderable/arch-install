@@ -252,7 +252,7 @@ SWAP_OFFSET="$(btrfs inspect-internal map-swapfile -r /swap/swapfile)"
 tee /boot/loader/entries/arch.conf <<-END
 	title	Arch Linux
  	linux	/vmlinuz-linux
-  	initrd	/<$UCODE>
+  	initrd	/<$UCODE>.img
    	initrd	/initramfs-linux.img
 	options	rd.luks.name=UUID=$PART_ID=cryptroot root=/dev/mapper/cryptroot rootflags=subvol=@root rootfstype=btrfs resume=UUID=$SWAP_ID resume_offset=$SWAP_OFFSET
 END
@@ -266,7 +266,7 @@ tee /etc/mkinitcpio.conf <<-"END"
 	MODULES=(vmd)
 	BINARIES=(/usr/bin/btrfs)
 	FILES=()
-	HOOKS=(base udev keyboard autodetect keymap consolefont modconf kms block encrypt filesystems resume fsck)
+	HOOKS=(base udev autodetect modconf kms keyboard keymap consolefont block encrypt resume filesystems fsck)
 END
 mkinitcpio -P
 
