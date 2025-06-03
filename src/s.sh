@@ -8,6 +8,7 @@ function print_usage {
   echo -e "\
 Alias for systemctl. Accepts the following short-hand arguments, otherwise passes all arguments directly to systemctl:
 ${CMD}reboot | restart${DESC} - Shut down and reboot the system${END}
+${CMD}fw | bios | uefi${DESC} - Reboot the system into firmware settings${END}
 ${CMD}poweroff | off | shutdown${DESC} - Shut down and power-off the system${END}
 ${CMD}suspend | suspend-to-ram | deep | 3 | ram${DESC} - Limits power consumption by the system${END}
 ${CMD}hibernate | suspend-to-disk | disk | 4${DESC} - Saves RAM to disk and power-off the system${END}
@@ -23,6 +24,7 @@ fi
 if [[ $# -eq 1 ]]; then
   case $1 in
     reboot | restart) systemctl reboot; exit;;
+    fw | bios | uefi) systemctl reboot --firmware-setup; exit;;
     poweroff | off | shutdown) systemctl poweroff; exit;;
     suspend | suspend-to-ram | deep | 3 | ram) systemctl suspend; exit;;
     hibernate | suspend-to-disk | disk | 4) systemctl hibernate; exit;;
