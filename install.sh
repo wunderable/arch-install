@@ -265,6 +265,7 @@ tee /boot/loader/entries/02-archiso.conf <<-END
    	options	img_dev=/dev/disk/by-partuuid/$BOOT_ID img_loop=/iso/archiso.iso earlymodules=loop
     	sort-key 2
 END
+build-archiso
 
 ##############
 # MKINITCPIO #
