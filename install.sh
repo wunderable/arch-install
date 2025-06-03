@@ -245,16 +245,25 @@ done
 ################
 
 bootctl install
-echo -e "default arch/ntimeout 2\neditor no" > /boot/loader/loader.conf
+echo -e "default 01-arch\ntimeout 5\neditor no" > /boot/loader/loader.conf
 PART_ID="$(blkid -s UUID -o value <$PART2>)"
 SWAP_ID="$(findmnt -no UUID -T /swap/swapfile)"
 SWAP_OFFSET="$(btrfs inspect-internal map-swapfile -r /swap/swapfile)"
-tee /boot/loader/entries/arch.conf <<-END
+BOOT_ID="$(lsblk -no PARTUUID <$PART1>)"
+tee /boot/loader/entries/01-arch.conf <<-END
 	title	Arch Linux
  	linux	/vmlinuz-linux
   	initrd	/<$UCODE>.img
    	initrd	/initramfs-linux.img
-	options	cryptdevice=UUID=$PART_ID:cryptroot root=/dev/mapper/cryptroot rootflags=subvol=@root rootfstype=btrfs resume=UUID=$SWAP_ID resume_offset=$SWAP_OFFSET
+	options	cryptdevice=UUID=$PART_ID:cryptroot root=/dev/mapper/cryptroot rootflags=subvol=@root rootfstype=btrfs resume=UUID=$SWAP_ID resume_offset=$SWAP_OFFSET rw quiet
+ 	sort-key 1
+END
+tee /boot/loader/entries/02-archiso.conf <<-END
+	title	Arch ISO
+ 	linux	/iso/vmlinuz-linux
+  	initrd	/iso/initramfs-linux.img
+   	options	img_dev=/dev/disk/by-partuuid/$BOOT_ID img_loop=/iso/archiso.iso earlymodules=loop
+    	sort-key 2
 END
 
 ##############
