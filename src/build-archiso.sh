@@ -79,7 +79,7 @@ mv /tmp/out/archlinux-*.iso /boot/iso/archiso.iso
 rmdir /tmp/out
 mkdir -p /mnt/iso
 mount -o loop /boot/iso/archiso.iso /mnt/iso
-cp /mnt/iso/arch/boot/x86_64/vmlinuz-linux.img /boot/iso
+cp /mnt/iso/arch/boot/x86_64/vmlinuz-linux /boot/iso
 cp /mnt/iso/arch/boot/x86_64/initramfs-linux.img /boot/iso
 umount /mnt/iso
 rmdir /mnt/iso
