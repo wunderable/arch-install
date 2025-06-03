@@ -24,10 +24,10 @@ mkdir -p /tmp/iso/airootfs/etc/systemd/system/getty@tty1.service.d
 cp /usr/share/archiso/configs/releng/airootfs/etc/systemd/system/getty@tty1.service.d/autologin.conf /tmp/iso/airootfs/etc/systemd/system/getty@tty1.service.d
 
 # Set hostname
-echo 'liveiso' > /tmp/iso/airootfs/etc/hostname
+echo 'archiso' > /tmp/iso/airootfs/etc/hostname
 
 # Add kernel parameters
-sed -i '/^\s*linux\s/s/$/ quiet loglevel=3/' /tmp/iso/airootfs/grub/grub.cfg
+#sed -i '/^\s*linux\s/s/$/ quiet loglevel=3/' /tmp/iso/airootfs/grub/grub.cfg
 
 # Setup bash
 mkdir -p /tmp/iso/airootfs/etc/profile.d
@@ -72,7 +72,13 @@ mkarchiso -v -w /tmp/iso -o /tmp/out /tmp/iso
 
 # Cleanup of files
 rm -rf /tmp/iso
-[ ! -e /boot/iso/liveiso.iso ] || rm /boot/iso/liveiso.iso
+[ ! -e /boot/iso/archiso.iso ] || rm /boot/iso/archiso.iso
 mkdir -p /boot/iso
-mv /tmp/out/archlinux-*.iso /boot/iso/liveiso.iso
+mv /tmp/out/archlinux-*.iso /boot/iso/archiso.iso
 rmdir /tmp/out
+mkdir -p /mnt/iso
+mount -o loop /boot/iso/archiso.iso /mnt/iso
+cp /mnt/iso/arch/boot/x86_64/vmlinuz-linux.img /boot/iso
+cp /mnt/iso/arch/boot/x86_64/initramfs-linux.img /boot/iso
+umount /mnt/iso
+rmdir /mnt/iso
