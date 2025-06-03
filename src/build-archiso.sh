@@ -27,7 +27,8 @@ cp /usr/share/archiso/configs/releng/airootfs/etc/systemd/system/getty@tty1.serv
 echo 'archiso' > /tmp/iso/airootfs/etc/hostname
 
 # Use systemd-boot instead of grub
-sed -i '/^bootmodes=/,/\)/c\bootmodes=( "bios.syslinux.mbr" "bios.syslinux.eltorito" "uefi-ia32.systemd-efi" "uefi-x64.systemd-efi" )' /tmp/iso/profiledef.sh
+sed -i '/^bootmodes=/,/)/c\
+bootmodes=( "bios.syslinux.mbr" "bios.syslinux.eltorito" "uefi-ia32.systemd-boot.esp" "uefi-x64.systemd-boot.esp" "uefi-ia32.systemd-boot.eltorito" "uefi-x64.systemd-boot.eltorito" )' /tmp/iso/profiledef.sh
 
 # Setup bash
 mkdir -p /tmp/iso/airootfs/etc/profile.d
