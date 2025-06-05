@@ -32,13 +32,13 @@ fi
 if [ -z "$LUKS_PASS" ]; then
 	while true; do
 		read -sp "Enter encryption password: " LUKS_PASS
-  		echo
+		echo
 		read -sp "Verify encryption password: " LUKS_VERIFY
-  		echo
+		echo
 		if [[ "$LUKS_PASS" == "$LUKS_VERIFY" ]]; then break; fi
 		echo "Passwords did not match"
 	done
- 	unset LUKS_VERIFY
+	unset LUKS_VERIFY
 fi
 
 # Ask for username (if $USER isn't already set)
@@ -50,13 +50,13 @@ fi
 if [ -z "$USER_PASS" ]; then
 	while true; do
 		read -sp "Enter root/user password: " USER_PASS
-  		echo
+		echo
 		read -sp "Verify root/user password: " USER_VERIFY
-  		echo
+		echo
 		if [[ "$USER_PASS" == "$USER_VERIFY" ]]; then break; fi
 		echo "Passwords did not match"
 	done
- 	unset USER_VERIFY
+	unset USER_VERIFY
 fi
 
 # Ask for hostname (if $HOST isn't already set)
@@ -67,11 +67,10 @@ fi
 # Ask to include a GUI
 if [ -z "$GUI" ]; then
 	while true; do
- 		read -p "Install a GUI? (y/n): " GUI
-   		echo
-     		if [[ "$GUI" == "y" || "$GUI" == "n" ]]; then break; fi
-       		echo "Invalid response"
-	 done
+		read -p "Install a GUI? (y/n): " GUI
+		if [[ "$GUI" == "y" || "$GUI" == "n" ]]; then break; fi
+		echo "Invalid response"
+	done
 fi
 
 ######################
@@ -97,6 +96,8 @@ DIR="$( cd "$( dirname "$0" )" && pwd )"
 # Set mounting options
 OPTIONS='rw,noatime,discard=async,compress-force=zstd:1,space_cache=v2'
 
+############################################################################################
+
 ################
 # PREPARE DISK #
 ################
@@ -107,20 +108,20 @@ CUR_PARTS=$(lsblk -lno NAME "$DEV" | grep -v "^$(basename $DEV)$")
 # Unmount all partitions
 for CUR_PART in $CUR_PARTS; do
 	MOUNT_POINT=$(findmnt -n -o TARGET "/dev/$CUR_PART" || true)
- 	if [[ -n "$MOUNT_POINT" ]]; then
-  		umount -R "/dev/$CUR_PART"
-    	fi
+	if [[ -n "$MOUNT_POINT" ]]; then
+		umount -R "/dev/$CUR_PART"
+	fi
 done
 
 # Close any LUKS mappings
 for CUR_PART in $CUR_PARTS; do
 	if cryptsetup isLuks "/dev/$CUR_PART" 2>/dev/null; then
- 		MAPS=$(lsblk -lno NAME,TYPE | awk '$2=="crypt" {print $1}')
-   		for MAP in $MAPS; do
-     			cryptsetup luksClose "$MAP" || true
+		MAPS=$(lsblk -lno NAME,TYPE | awk '$2=="crypt" {print $1}')
+		for MAP in $MAPS; do
+			cryptsetup luksClose "$MAP" || true
 		done
-  		cryptsetup luksErase "/dev/$CUR_PARTS"
-    	fi
+		cryptsetup luksErase "/dev/$CUR_PARTS"
+	fi
 done
 
 # Create partitions
@@ -172,9 +173,9 @@ swapon /mnt/swap/swapfile
 # INSTALL #
 ###########
 
-# Install packages
+# Install base packages
 reflector --verbose --protocol https --latest 5 --sort rate --country 'United States' --save /etc/pacman.d/mirrorlist
-pacstrap -K /mnt base linux linux-firmware $UCODE btrfs-progs networkmanager vim man-db man-pages base-devel git efibootmgr
+pacstrap -K /mnt base linux linux-firmware fwupd $UCODE udisks2 efibootmgr btrfs-progs networkmanager vim man-db man-pages base-devel git
 
 # Generate fstab file
 genfstab -U /mnt >> /mnt/etc/fstab
@@ -280,50 +281,6 @@ tee /etc/mkinitcpio.conf <<-"END"
 END
 mkinitcpio -P
 
-########
-# GRUB #
-########
-
-# Prepare GRUB file
-#awk \
-#	-vFPAT='([^=]*)|("[^"]+")' \
-#	-vOFS== \
-#	-vPART_ID="$(blkid -s UUID -o value <$PART2>)" \
-#	-vSWAP_ID="$(findmnt -no UUID -T /swap/swapfile)" \
-#	-vSWAP_OFFSET="$(btrfs inspect-internal map-swapfile -r /swap/swapfile)" \
-#	'{
-#		if($1=="GRUB_TIMEOUT")
-#			$2="2";
-#		if($1=="GRUB_CMDLINE_LINUX_DEFAULT")
-#			$2="\"cryptdevice=UUID=" PART_ID ":root root=/dev/mapper/root rootflags=subvol=@root resume=UUID=" SWAP_ID " resume_offset=" SWAP_OFFSET " loglevel=3 quiet\"";
-#		print
-#	}' /etc/default/grub > /etc/default/grub.new
-#mv /etc/default/grub.new /etc/default/grub
-#
-# Install GRUB
-#grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
-#
-# Customize GRUB
-#tee -a /etc/grub.d/40_custom <<-"END"
-#	menuentry 'Live ISO' --class disc --class iso {
-#	    set imgdevpath='/dev/disk/by-uuid/xxxx-xxxx'
-#	    set isofile='/iso/liveiso.iso'
-#	    loopback loop $isofile
-#	    linux (loop)/arch/boot/x86_64/vmlinuz-linux img_dev=$imgdevpath img_loop=$isofile earlymodules=loop
-#	    initrd (loop)/arch/boot/intel-ucode.img (loop)/arch/boot/x86_64/initramfs-linux.img
-#	}
-#END
-#mkdir /boot/iso
-#sed -i "/submenu.*Advanced options/,/is_top_level=false/s/^/#REMOVE_ADVANCED_OPTIONS#/" /etc/grub.d/10_linux
-#sed -i "/linux_entry.*advanced/,/done/{/done/b;s/^/#REMOVE_ADVACNED_OPTIONS#/}" /etc/grub.d/10_linux
-#sed -i "s/\(menuentry '\$LABEL'\)/\1 --class driver/" /etc/grub.d/30_uefi-firmware
-#sed -i "s/xxxx-xxxx/$(blkid -s UUID -o value <$PART1>)/" /etc/grub.d/40_custom
-#sed -i 's/^\s+/\t/' /etc/grub.d/40_custom
-#
-# Update GRUB
-#grub-mkconfig -o /boot/grub/grub.cfg
-#build-liveiso
-
 #########
 # SHELL #
 #########
@@ -414,7 +371,7 @@ if [[ "<$GUI>" == "y" ]]; then
 	tee /etc/greetd/config.toml <<-"END"
 		[terminal]
 		vt = 1
-	
+
 		[default_session]
 		command = "tuigreet --time --time-format '%A, %B %-d %I:%M' --remember --user-menu --cmd 'Hyprland > /dev/null' --theme 'time=cyan;border=cyan;title=magenta;button=yellow'"
 		user = "greeter"
@@ -453,7 +410,7 @@ if [[ "$GUI" == "y" ]]; then
 	# Hyprland
 	mkdir -p /mnt/home/$USER/.config/hypr
 	cp $DIR/files/hypr/hyprland.conf /mnt/home/$USER/.config/hypr/hyprland.conf
-	
+
 	# Kitty
 	mkdir -p /mnt/home/$USER/.config/kitty
 	cp $DIR/files/kitty/kitty.conf /mnt/home/$USER/.config/kitty/kitty.conf
