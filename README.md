@@ -17,7 +17,7 @@ If using wifi:
 * Ensure repos are up-to-date `pacman -Syy`
 * Install git `pacman -S git`
 
-### 5. (Optional) Delete grub
+### 5. (Optional) Delete bootloader
 * `efibootmgr -b 0 -B`
 
 ### 6. Clone repository
@@ -25,4 +25,4 @@ If using wifi:
 
 ### 7. Install
 * `cd arch-install`
-* `sh install.sh`
+* `bash install.sh`
