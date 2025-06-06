@@ -385,6 +385,9 @@ fi
 # Hibernate 30 mins after sleeping
 sed -Ei "s/^#(HibernateDelaySec=)$/\130min/" /etc/systemd/sleep.conf
 
+# Change default shell
+chsh -s /usr/bin/zsh
+
 # Enable services at startup
 systemctl enable NetworkManager
 systemctl enable sshd
