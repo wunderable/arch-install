@@ -420,6 +420,7 @@ fi
 # Shell
 cp $DIR/files/shell/aliases.sh /mnt/etc/profile.d/aliases.sh
 cp $DIR/files/shell/prompt.sh /mnt/etc/profile.d/prompt.sh
+cp $DIR/files/shell/zshrc /mnt/etc/zsh/zshrc
 
 ########
 # MISC #
