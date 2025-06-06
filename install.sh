@@ -308,7 +308,7 @@ sed -Ei "s/^# (%wheel ALL=\(ALL:ALL\) ALL)/\1/" /etc/sudoers
 sed -i "s/#Color/Color/" /etc/pacman.conf
 
 # Install packages with pacman
-pacman --noconfirm -S acpid python3 zsh # upower pipewire wireplumber alsa-utils
+pacman --noconfirm -S acpid openssh python3 zsh # upower pipewire wireplumber alsa-utils
 if [[ "<$GUI>" == "y" ]]; then
 	pacman --noconfirm -S greetd greetd-tuigreet gtk4 hyprland kitty neofetch spotify-launcher ttf-joypixels ttf-roboto-mono-nerd vivaldi vivaldi-ffmpeg-codecs
 fi
@@ -385,8 +385,9 @@ fi
 # Hibernate 30 mins after sleeping
 sed -Ei "s/^#(HibernateDelaySec=)$/\130min/" /etc/systemd/sleep.conf
 
-# Enable NetworkManager at startup
+# Enable services at startup
 systemctl enable NetworkManager
+systemctl enable sshd
 
 EOF
 
