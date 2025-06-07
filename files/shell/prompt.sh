@@ -8,6 +8,6 @@ USER="\[\e[${COLOR}m\]\u"
 HOST="\[\e[90m\]@\h:"
 DIR="\[\e[34m\]\w"
 GIT='\[\e[33m\]$(__git_ps1)'
-PROMPT="\[\e[${COLOR}m\]\$\[\e[0m\] "
+CHAR="\[\e[${COLOR}m\]\$\[\e[0m\] "
 
-export PS1="${USER}${HOST}${DIR}${GIT}${PROMPT}"
+export PS1="${USER}${HOST}${DIR}${GIT}${CHAR}"
