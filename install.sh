@@ -308,7 +308,7 @@ sed -Ei "s/^# (%wheel ALL=\(ALL:ALL\) ALL)/\1/" /etc/sudoers
 sed -i "s/#Color/Color/" /etc/pacman.conf
 
 # Install packages with pacman
-pacman --noconfirm -S acpid openssh python3 zsh zsh-autosuggestions zsh-syntax-highlighting # upower pipewire wireplumber alsa-utils
+pacman --noconfirm -S acpid docker docker-compose openssh python3 zsh zsh-autosuggestions zsh-syntax-highlighting # upower pipewire wireplumber alsa-utils
 if [[ "<$GUI>" == "y" ]]; then
 	pacman --noconfirm -S greetd greetd-tuigreet gtk4 hyprland kitty neofetch spotify-launcher ttf-joypixels ttf-roboto-mono-nerd vivaldi vivaldi-ffmpeg-codecs
 fi
@@ -388,7 +388,11 @@ sed -Ei "s/^#(HibernateDelaySec=)$/\130min/" /etc/systemd/sleep.conf
 # Change default shell
 chsh -s /usr/bin/zsh
 
+# Add user to docker group
+usermod -aG docker <$USER>
+
 # Enable services at startup
+systemctl enable docker
 systemctl enable NetworkManager
 systemctl enable sshd
 
