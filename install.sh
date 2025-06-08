@@ -296,8 +296,8 @@ cp /etc/bash.bashrc /etc/skel/.bashrc
 
 # Create user and set passwords
 useradd -m -G wheel <$USER>
-echo <$USER>:<$USER_PASS> | chpasswd
-echo root:<$USER_PASS> | chpasswd
+echo "<$USER>:$USER_PASS" | chpasswd
+echo "root:$USER_PASS" | chpasswd
 sed -Ei "s/^# (%wheel ALL=\(ALL:ALL\) ALL)/\1/" /etc/sudoers
 
 ##########
@@ -403,12 +403,12 @@ sed -i "s/<\$HOST>/$HOST/g" /mnt/install.sh
 sed -i "s/<\$PART1>/${PART1//\//\\\/}/g" /mnt/install.sh
 sed -i "s/<\$PART2>/${PART2//\//\\\/}/g" /mnt/install.sh
 sed -i "s/<\$USER>/$USER/g" /mnt/install.sh
-sed -i "s/<\$USER_PASS>/$USER_PASS/g" /mnt/install.sh
+#sed -i "s/<\$USER_PASS>/$USER_PASS/g" /mnt/install.sh
 sed -i "s/<\$UCODE>/$UCODE/g" /mnt/install.sh
 sed -i "s/<\$GUI>/$GUI/g" /mnt/install.sh
 
 # Run the chrooted install file
-arch-chroot /mnt sh install.sh
+USER_PASS="$USER_PASS" arch-chroot /mnt bash install.sh
 
 ##############
 # COPY FILES #
