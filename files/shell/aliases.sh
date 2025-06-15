@@ -12,6 +12,6 @@ alias cd..='cd ..'
 
 alias cls='clear'
 alias view='vim -R'
-alias bat='printf "%s%% - %s\n" $(cat /sys/class/power_supply/BAT0/capacity) $(cat /sys/class/power_supply/BAT0/status)'
+alias bat='BAT0=/sys/class/power_supply/BAT0 [ -d BAT0 ] && printf "%s%% - %s\n" $(cat $BAT0/capacity) $(cat $BAT0/status) || echo "Battery not found"'
 alias font-list='fc-list | cut -d ":" -f 2- | cut -d "," -f 1 | sort -u'
 alias code='code --touch-events'
