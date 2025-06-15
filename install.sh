@@ -5,12 +5,13 @@
 ###########################################
 
 # User defined variables. Script will ask for them interactively if set to an empty string
-DEV=''		# The block device to install to
-LUKS_PASS=''	# The password to unlock encrypted partition
-USER=''		# Username of primary user
-USER_PASS=''	# Password of primary user and root
-HOST=''		# Hostname of the computer
-GUI=''		# Whether or not to include a GUI (y or n)
+DEV=		# The block device to install to
+ENCRYPT=	# Whether or not to encrypt the device (true or false NOTE: not a string, i.e. ENCRYPT=true NOT ENCRYPT='true')
+LUKS_PASS=	# The password to unlock encrypted partition
+USER=		# Username of primary user
+USER_PASS=	# Password of primary user and root
+HOST=		# Hostname of the computer
+GUI=		# Whether or not to include a GUI (true or false)
 
 #########################
 # SET MISSING VARIABLES #
@@ -20,16 +21,28 @@ GUI=''		# Whether or not to include a GUI (y or n)
 if [ -z "$DEV" ]; then
 	IFS=$'\n'
 	DEVS=($(lsblk --list --output path,size,type | grep disk | awk '{print $1 " - " $2}'))
-	PS3='Select disk to install to: '
+	PS3="Select disk to install to: "
 	select CHOICE in "${DEVS[@]}"; do
 		if [[ $REPLY =~ ^[0-9]+$ && $REPLY -ge 1 && $REPLY -le ${#DEVS[@]} ]]; then break; fi
-		echo 'Invalid option'
+		echo "Invalid choice"
 	done
 	DEV=$(grep -Po "^[^\s]+" <<< "$CHOICE")
 fi
 
+# Ask whether or not to encrypt the device
+if [ -z "$ENCRYPT" ]; then
+	while true; do
+		read -rp "Encrypt the device? (y/n) " CHOICE
+		case "${CHOICE,,}" in
+			y|yes) ENCRYPT=true; break ;;
+			n|no) ENCRYPT=false; break ;;
+			*) echo "Invalid choice" ;;
+		esac
+	done
+fi
+
 # Ask for encryption password (if $LUKS_PASS isn't already set)
-if [ -z "$LUKS_PASS" ]; then
+if $ENCRYPT && [ -z "$LUKS_PASS" ]; then
 	while true; do
 		read -sp "Enter encryption password: " LUKS_PASS
 		echo
@@ -61,15 +74,18 @@ fi
 
 # Ask for hostname (if $HOST isn't already set)
 if [ -z "$HOST" ]; then
-	read -p "Enter the desired hostname: " HOST
+	read -p "Enter hostname: " HOST
 fi
 
 # Ask to include a GUI
 if [ -z "$GUI" ]; then
 	while true; do
-		read -p "Install a GUI? (y/n): " GUI
-		if [[ "$GUI" == "y" || "$GUI" == "n" ]]; then break; fi
-		echo "Invalid response"
+		read -rp "Install a GUI? (y/n) " CHOICE
+		case "${CHOICE,,}" in
+			y|yes) GUI=true; break ;;
+			n|no) GUI=false; break ;;
+			*) echo "Invalid choice" ;;
+		esac
 	done
 fi
 
@@ -83,6 +99,12 @@ if [[ $PART =~ [0-9]$ ]]; then PART+="p"; fi
 PART1="${PART}1"
 PART2="${PART}2"
 unset PART
+
+if $ENCRYPT; then
+	ROOT="/dev/mapper/cryptroot"
+else
+	ROOT="$PART2"
+fi
 
 # Determine which microcode, if any, to include
 CPU=$(lscpu | grep "^Vendor ID" | awk '{print $3}')
@@ -131,13 +153,15 @@ sgdisk -n 0:0:+2048MiB -t 0:ef00 -c 0:esp $DEV
 sgdisk -n 0:0:0 -t 0:8309 -c 0:luks $DEV
 
 # Format partitions
-echo -n $LUKS_PASS | cryptsetup luksFormat $PART2 -
-echo -n $LUKS_PASS | cryptsetup open $PART2 cryptroot -
+if $ENCRYPT; then
+	echo -n $LUKS_PASS | cryptsetup luksFormat $PART2 -
+	echo -n $LUKS_PASS | cryptsetup open $PART2 cryptroot -
+fi
 mkfs.vfat -F32 -n BOOT $PART1
-mkfs.btrfs -L ROOT /dev/mapper/cryptroot
+mkfs.btrfs -L ROOT $ROOT
 
 # Create subvolumes
-mount /dev/mapper/cryptroot /mnt
+mount $ROOT /mnt
 btrfs sub create /mnt/@root
 btrfs sub create /mnt/@home
 btrfs sub create /mnt/@snapshots
@@ -150,12 +174,12 @@ btrfs sub create /mnt/@root/var/tmp
 umount /mnt
 
 # Mount partitions
-mount -o "${OPTIONS},subvol=@root" /dev/mapper/cryptroot /mnt
+mount -o "${OPTIONS},subvol=@root" $ROOT /mnt
 mkdir -p /mnt/{boot,home,etc,snapshots,var/log,swap}
-mount -o "${OPTIONS},subvol=@home" /dev/mapper/cryptroot /mnt/home
-mount -o "${OPTIONS},subvol=@snapshots" /dev/mapper/cryptroot /mnt/snapshots
-mount -o "${OPTIONS},subvol=@log" /dev/mapper/cryptroot /mnt/var/log
-mount -o "${OPTIONS},subvol=@swap" /dev/mapper/cryptroot /mnt/swap
+mount -o "${OPTIONS},subvol=@home" $ROOT /mnt/home
+mount -o "${OPTIONS},subvol=@snapshots" $ROOT /mnt/snapshots
+mount -o "${OPTIONS},subvol=@log" $ROOT /mnt/var/log
+mount -o "${OPTIONS},subvol=@swap" $ROOT /mnt/swap
 mount $PART1 /mnt/boot
 
 # Disable CoW for some directories
@@ -194,7 +218,7 @@ for FILE in $DIR/src/*; do
 done
 
 # Update files with appropriate values
-if [ -n "$UCODE" ]; then sed -i "s/\(' >> \/tmp\/iso\/packages.x86_64\)/\\\\n$UCODE\1/" /mnt/usr/local/src/build-liveiso.sh; fi
+if [ -n "$UCODE" ]; then sed -i "s/\(' >> \/tmp\/iso\/packages.x86_64\)/\\\\n$UCODE\1/" /mnt/usr/local/src/build-archiso.sh; fi
 sed -i "s/<\$PART2>/${PART2//\//\\\/}/g" /mnt/usr/local/src/iso-mfs.sh
 sed -i "s/<\$OPTIONS>/$OPTIONS/g" /mnt/usr/local/src/iso-mfs.sh
 
@@ -251,14 +275,15 @@ PART_ID="$(blkid -s UUID -o value <$PART2>)"
 SWAP_ID="$(findmnt -no UUID -T /swap/swapfile)"
 SWAP_OFFSET="$(btrfs inspect-internal map-swapfile -r /swap/swapfile)"
 BOOT_ID="$(lsblk -no PARTUUID <$PART1>)"
+BOOT_OPTS="root=<$PART2>"
 tee /boot/loader/entries/01-arch.conf <<-END
 	title	Arch Linux
 	linux	/vmlinuz-linux
-	initrd	/<$UCODE>.img
 	initrd	/initramfs-linux.img
-	options	cryptdevice=UUID=$PART_ID:cryptroot root=/dev/mapper/cryptroot rootflags=subvol=@root rootfstype=btrfs resume=UUID=$SWAP_ID resume_offset=$SWAP_OFFSET rw quiet
+	options	$BOOT_OPTS rootflags=subvol=@root rootfstype=btrfs resume=UUID=$SWAP_ID resume_offset=$SWAP_OFFSET rw quiet
 	sort-key 1
 END
+if [ -z "<$UCODE>" ]; then sed -i $'2a\\initrd\t/<$UCODE>.img' /boot/loader/entries/01-arch.conf; fi
 tee /boot/loader/entries/02-archiso.conf <<-END
 	title	Arch ISO
 	linux	/iso/vmlinuz-linux
@@ -309,7 +334,7 @@ sed -i "s/#Color/Color/" /etc/pacman.conf
 
 # Install packages with pacman
 pacman --noconfirm -S acpid docker docker-compose openssh python3 zsh zsh-autosuggestions zsh-syntax-highlighting # upower pipewire wireplumber alsa-utils
-if [[ "<$GUI>" == "y" ]]; then
+if <$GUI>; then
 	pacman --noconfirm -S greetd greetd-tuigreet gtk4 hyprland kitty neofetch spotify-launcher ttf-joypixels ttf-roboto-mono-nerd vivaldi vivaldi-ffmpeg-codecs
 fi
 
@@ -332,7 +357,7 @@ rm -r --interactive=never yay
 
 # Install packages with yay
 sudo -u <$USER> yay --noconfirm -Syu
-if [[ "<$GUI>" == "y" ]]; then
+if <$GUI>; then
 	sudo -u <$USER> yay --noconfirm -S anyrun-git visual-studio-code-bin
 fi
 rm /etc/sudoers.d/nopass
@@ -356,7 +381,7 @@ END
 # VSCODE #
 ##########
 
-if [[ "<$GUI>" == "y" ]]; then
+if <$GUI>; then
 	# Pass touch events to electron when launching code
 	sed -i 's|Exec=/usr/bin/code\(.*\)|Exec=/usr/bin/code --touch-events\1|' /usr/share/applications/code.desktop
 	sed -i 's|Exec=/usr/bin/code\(.*\)|Exec=/usr/bin/code --touch-events\1|' /usr/share/applications/code-url-handler.desktop
@@ -366,7 +391,7 @@ fi
 # GREETER / DISPLAY MANAGER #
 #############################
 
-if [[ "<$GUI>" == "y" ]]; then
+if <$GUI>; then
 	systemctl enable greetd
 	tee /etc/greetd/config.toml <<-"END"
 		[terminal]
@@ -403,9 +428,13 @@ sed -i "s/<\$HOST>/$HOST/g" /mnt/install.sh
 sed -i "s/<\$PART1>/${PART1//\//\\\/}/g" /mnt/install.sh
 sed -i "s/<\$PART2>/${PART2//\//\\\/}/g" /mnt/install.sh
 sed -i "s/<\$USER>/$USER/g" /mnt/install.sh
-#sed -i "s/<\$USER_PASS>/$USER_PASS/g" /mnt/install.sh
 sed -i "s/<\$UCODE>/$UCODE/g" /mnt/install.sh
 sed -i "s/<\$GUI>/$GUI/g" /mnt/install.sh
+if $ENCRYPT; then
+	sed -i 's/BOOT_OPTS=.*/BOOT_OPTS="cryptdevice=UUID=$PART_ID:cryptroot root=/dev/mapper/cryptroot"' /mnt/install.sh
+else
+	sed -i 's/ encrypt//' /mnt/install.sh
+fi
 
 # Run the chrooted install file
 USER_PASS="$USER_PASS" arch-chroot /mnt bash install.sh
@@ -414,7 +443,7 @@ USER_PASS="$USER_PASS" arch-chroot /mnt bash install.sh
 # COPY FILES #
 ##############
 
-if [[ "$GUI" == "y" ]]; then
+if $GUI; then
 	# Hyprland
 	mkdir -p /mnt/home/$USER/.config/hypr
 	cp $DIR/files/hypr/hyprland.conf /mnt/home/$USER/.config/hypr/hyprland.conf
