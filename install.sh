@@ -314,6 +314,7 @@ mkinitcpio -P
 sed -i '/^\s*PS1=/asource /etc/profile.d/prompt.sh || true' /etc/bash.bashrc
 echo 'source /etc/profile.d/aliases.sh || true' >> /etc/bash.bashrc
 cp /etc/bash.bashrc /etc/skel/.bashrc
+touch /etc/skel/.zshrc
 
 #########
 # USERS #
