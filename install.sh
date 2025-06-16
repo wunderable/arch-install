@@ -413,7 +413,7 @@ sed -Ei "s/^#(HibernateDelaySec=)$/\130min/" /etc/systemd/sleep.conf
 
 # Change default shell
 chsh -s /usr/bin/zsh
-sudo -u <$USER> chsh -s /usr/bin/zsh
+usermod -s /usr/bin/zsh <$USER>
 
 # Add user to docker group
 usermod -aG docker <$USER>
