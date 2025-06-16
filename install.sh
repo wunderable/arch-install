@@ -158,7 +158,7 @@ if $ENCRYPT; then
 	echo -n $LUKS_PASS | cryptsetup open $PART2 cryptroot -
 fi
 mkfs.vfat -F32 -n BOOT $PART1
-mkfs.btrfs -L ROOT $ROOT
+mkfs.btrfs -f -L ROOT $ROOT
 
 # Create subvolumes
 mount $ROOT /mnt
@@ -283,7 +283,7 @@ tee /boot/loader/entries/01-arch.conf <<-END
 	options	$BOOT_OPTS rootflags=subvol=@root rootfstype=btrfs resume=UUID=$SWAP_ID resume_offset=$SWAP_OFFSET rw quiet
 	sort-key 1
 END
-if [ -z "<$UCODE>" ]; then sed -i $'2a\\initrd\t/<$UCODE>.img' /boot/loader/entries/01-arch.conf; fi
+if [ -n "<$UCODE>" ]; then sed -i $'2a\\initrd\t/<$UCODE>.img' /boot/loader/entries/01-arch.conf; fi
 tee /boot/loader/entries/02-archiso.conf <<-END
 	title	Arch ISO
 	linux	/iso/vmlinuz-linux
@@ -413,6 +413,7 @@ sed -Ei "s/^#(HibernateDelaySec=)$/\130min/" /etc/systemd/sleep.conf
 
 # Change default shell
 chsh -s /usr/bin/zsh
+sudo -u <$USER> chsh -s /usr/bin/zsh
 
 # Add user to docker group
 usermod -aG docker <$USER>
