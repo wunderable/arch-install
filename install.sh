@@ -10,12 +10,13 @@ ENCRYPT=	# Whether or not to encrypt the device (true or false NOTE: not a strin
 LUKS_PASS=	# The password to unlock encrypted partition
 USER=		# Username of primary user
 USER_PASS=	# Password of primary user and root
+AUTO_LOGIN=	# Whether or not to auto login the user (true or false)
 HOST=		# Hostname of the computer
 GUI=		# Whether or not to include a GUI (true or false)
 
-#########################
-# SET MISSING VARIABLES #
-#########################
+###########################
+# ASK FOR UNSET VARIABLES #
+###########################
 
 # Select device (if $DEV isn't already set)
 if [ -z "$DEV" ]; then
@@ -70,6 +71,18 @@ if [ -z "$USER_PASS" ]; then
 		echo "Passwords did not match"
 	done
 	unset USER_VERIFY
+fi
+
+# Ask whether or not to auto login the user
+if [ -z "$AUTO_LOGIN" ]; then
+	while true; do
+		read -rp "Autologin user? (y/n) " CHOICE
+		case "${CHOICE,,}" IN
+			y|yes) AUTO_LOGIN=true; break ;;
+			n|no) AUTO_LOGIN=false; break ;;
+			*) echo "Invalid choice" ;;
+		esac
+	done
 fi
 
 # Ask for hostname (if $HOST isn't already set)
@@ -325,6 +338,10 @@ useradd -m -G wheel <$USER>
 echo "<$USER>:$USER_PASS" | chpasswd
 echo "root:$USER_PASS" | chpasswd
 sed -Ei "s/^# (%wheel ALL=\(ALL:ALL\) ALL)/\1/" /etc/sudoers
+if <$AUTO_LOGIN>; then
+	mkdir -p /etc/systemd/system/getty@tty1.service.d
+	echo -e "[Service]\nExecStart=\nExecStart=/usr/bin/agetty --autologin <$USER> --noclear %I \$TERM" > /etc/systemd/system/getty@tty1.service.d/autologin.conf
+fi
 
 ##########
 # PACMAN #
@@ -430,6 +447,7 @@ sed -i "s/<\$HOST>/$HOST/g" /mnt/install.sh
 sed -i "s/<\$PART1>/${PART1//\//\\\/}/g" /mnt/install.sh
 sed -i "s/<\$PART2>/${PART2//\//\\\/}/g" /mnt/install.sh
 sed -i "s/<\$USER>/$USER/g" /mnt/install.sh
+sed -i "s/<\$AUTO_LOGIN>/$AUTO_LOGIN/g" /mnt/install.sh
 sed -i "s/<\$UCODE>/$UCODE/g" /mnt/install.sh
 sed -i "s/<\$GUI>/$GUI/g" /mnt/install.sh
 if $ENCRYPT; then
