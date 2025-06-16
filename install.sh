@@ -77,7 +77,7 @@ fi
 if [ -z "$AUTO_LOGIN" ]; then
 	while true; do
 		read -rp "Autologin user? (y/n) " CHOICE
-		case "${CHOICE,,}" IN
+		case "${CHOICE,,}" in
 			y|yes) AUTO_LOGIN=true; break ;;
 			n|no) AUTO_LOGIN=false; break ;;
 			*) echo "Invalid choice" ;;
