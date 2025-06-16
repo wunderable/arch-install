@@ -13,8 +13,8 @@ autoload -Uz compinit vcs_info
 compinit
 
 zstyle :compinstall filename '/home/dan/.zshrc'
-zstyle ':vcs_info:git:*' formats ' (%b%u) '
-zstyle ':vcs_info:git:*' actionformats ' (%b|%a%u) '
+zstyle ':vcs_info:git:*' formats ' (%b%u)'
+zstyle ':vcs_info:git:*' actionformats ' (%b|%a%u)'
 zstyle ':completion:*' menu select
 
 precmd_functions+=(vcs_info)
