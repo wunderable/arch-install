@@ -9,16 +9,48 @@ unsetopt beep notify
 bindkey -v
 bindkey -M viins '^F' autosuggest-accept
 
-autoload -Uz compinit vcs_info
+autoload -Uz compinit
 compinit
 
 zstyle :compinstall filename '/home/dan/.zshrc'
-zstyle ':vcs_info:git:*' formats ' (%b%u)'
-zstyle ':vcs_info:git:*' actionformats ' (%b|%a%u)'
 zstyle ':completion:*' menu select
 
-precmd_functions+=(vcs_info)
-PROMPT='%(!.%F{red}.%F{green})%n%B%F{black} %m %b%F{cyan}%~%F{yellow}${vcs_info_msg_0_}%(!.%F{red} #.%F{green} $)%f '
+create_prompt(){
+  local user='%(!.%F{red}.%F{green})%n%f'
+  local host='%B%F{black}%m%f%b'
+  local terminator='%(!.%F{red}#.%F{green}$)%f'
+  local cwd_with_git(){
+    local repo_path start_path end_path branch ahead behind staged unstaged untracked
+    repo_path=$(git rev-parse --show-toplevel 2>/dev/null)
+    if [ -n "$repo_path" ]; then
+      repo_path="${repo_path##*/}"
+      start_path="${PWD%%/$repo_path*}/"
+      start_path="${start_path/#$HOME/~}"
+      end_path="${PWD#*/$repo_path}"
+      branch=$(git symbolic-ref --short HEAD 2>/dev/null || git describe --tags --exact-match 2>/dev/null)
+      upstream=$(git rev-parse --abbrev-ref @{u} 2>/dev/null)
+      if [[ -n "$upstream" ]]; then
+        local counts=$(git rev-list --left-right --count HEAD..."$upstream" 2>/dev/null)
+        ahead=$(echo "$counts" | cut -f1)
+        behind=$(echo "$counts" | cut -f2)
+        upstream=""
+        (( ahead > 0 )) && ahead="$ahead" || ahead=""
+        (( behind > 0 )) && behind="$behind" || behind=""
+      fi
+      staged=$(git diff --cached --quiet || echo "+")
+      unstaged=$(git diff --quiet || echo "!")
+      untracked=$(git status --porcelain | grep -q '^??' && echo "?")
+      stashed=$(git stash list | grep -q . && echo "*")
+      print -r -- "%F{cyan}${start_path}%B${repo_path}%b${end_path} %F{yellow}${branch} %F{green}${ahead}%F{red}${behind}%B%F{red}${staged}${unstaged}${untracked}${stashed}%f%b"
+    else
+      print -r -- "%F{cyan}%~%f"
+    fi
+  }
+
+  PROMPT="${user} ${host} $(cwd_with_git) ${terminator} "
+}
+
+precmd_functions+=(create_prompt)
 
 source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
