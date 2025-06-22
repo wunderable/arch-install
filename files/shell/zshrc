@@ -1,56 +1,94 @@
+# History
 HISTFILE=~/.histfile
 HISTSIZE=1000
 SAVEHIST=1000
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=black,bold'
 
+# Shell options
 setopt autocd extendedglob nomatch prompt_subst
 unsetopt beep notify
 
+# Keybindings
 bindkey -v
 bindkey -M viins '^F' autosuggest-accept
 
-autoload -Uz compinit
-compinit
-
+# Completion
+autoload -Uz compinit && compinit
 zstyle :compinstall filename '/home/dan/.zshrc'
 zstyle ':completion:*' menu select
 
-create_prompt(){
-  local user='%(!.%F{red}.%F{green})%n%f'
-  local host='%B%F{black}%m%f%b'
-  local terminator='%(!.%F{red}#.%F{green}$)%f'
-  local cwd_with_git(){
-    local repo_path start_path end_path branch ahead behind staged unstaged untracked
-    repo_path=$(git rev-parse --show-toplevel 2>/dev/null)
-    if [ -n "$repo_path" ]; then
-      repo_path="${repo_path##*/}"
-      start_path="${PWD%%/$repo_path*}/"
-      start_path="${start_path/#$HOME/~}"
-      end_path="${PWD#*/$repo_path}"
-      branch=$(git symbolic-ref --short HEAD 2>/dev/null || git describe --tags --exact-match 2>/dev/null)
-      upstream=$(git rev-parse --abbrev-ref @{u} 2>/dev/null)
-      if [[ -n "$upstream" ]]; then
-        local counts=$(git rev-list --left-right --count HEAD..."$upstream" 2>/dev/null)
-        ahead=$(echo "$counts" | cut -f1)
-        behind=$(echo "$counts" | cut -f2)
-        upstream=""
-        (( ahead > 0 )) && ahead="$ahead" || ahead=""
-        (( behind > 0 )) && behind="$behind" || behind=""
-      fi
-      staged=$(git diff --cached --quiet || echo "+")
-      unstaged=$(git diff --quiet || echo "!")
-      untracked=$(git status --porcelain | grep -q '^??' && echo "?")
-      stashed=$(git stash list | grep -q . && echo "*")
-      print -r -- "%F{cyan}${start_path}%B${repo_path}%b${end_path} %F{yellow}${branch} %F{green}${ahead}%F{red}${behind}%B%F{red}${staged}${unstaged}${untracked}${stashed}%f%b"
-    else
-      print -r -- "%F{cyan}%~%f"
-    fi
-  }
+# Set global vars to be used in PROMPT (currently only setting a single var, but can set multiple)
+typeset -g prompt_var
+set_prompt_vars() {
 
-  PROMPT="${user} ${host} $(cwd_with_git) ${terminator} "
+  # If not in a git repo, just use built-in %~ and exit
+  local root
+  if ! root=$(git rev-parse --show-toplevel 2>/dev/null); then
+    prompt_var="%F{cyan}%~%f"
+    return
+  fi
+
+  # Get working directory while highlighting repo's root directory
+  local repo="${root##*/}"
+  local left="${PWD%%/$repo*}/"; left="${left/#$HOME/~}"
+  local right="${PWD#*/$repo}"
+  local prompt_pwd="%F{cyan}${left}%B${repo}%b${right}%f"
+
+  # Retrieve git info
+  local info=$(git -C "$root" status --porcelain=2 --branch 2>/dev/null)
+
+  # Current branch's name
+  local branch
+  if [[ $info =~ $'\n# branch\\.head ([^\n]+)' ]]; then
+    branch="%F{yellow}${match[1]}%f"
+  fi
+
+  # Get number of commits local repo is ahead and behind of upstream
+  local delta
+  if [[ $info =~ $'\n# branch\\.ab \\+([0-9]+) -([0-9]+)' ]]; then
+    (( match[1] )) && delta="%F{green}↑${match[1]}%f"
+    (( match[2] )) && delta+="%F{red}↓${match[2]}%f"
+  fi
+
+  # Get number of items each that are staged, unstaged, or untracked
+  local staged=0 unstaged=0 untracked=0
+  while IFS= read -r line; do
+    case $line in
+      1\ *|2\ *)
+        [[ "${line[3]}" != "." ]] && (( staged++ ))
+        [[ "${line[4]}" != "." ]] && (( unstaged++ ))
+        ;;
+      \?\ *)
+        (( untracked++ ))
+        ;;
+    esac
+  done <<< $info
+
+  # Set prompt_var (puts it all together with proper spacing)
+  local flags
+  (( staged )) && flags+="+"
+  (( unstaged )) && flags+="!"
+  (( untracked )) && flags+="?"
+  [[ -n "$flags" ]] && flags="%B%F{red}${flags}%f%b"
+  [[ -n "${delta}${flags}" ]] && flags=" ${delta}${flags}"
+  prompt_var="${prompt_pwd} ${branch}${flags}"
+
+#  [[ -s $root/logs/regs/stash ]] && prompt_flags+="*"
+#  prompt_flags="%B%F{red}${prompt_flags}%f%b"
+
 }
 
-precmd_functions+=(create_prompt)
+# Set prompt variables
+prompt_user='%(!.%F{red}.%F{green})%n%f'
+prompt_host='%B%F{black}%m%f%b'
+prompt_terminator='%(?.%F{green}.%F{red})%(!.#.%%)%f'
+set_prompt_vars
 
+# Set prompt
+#chpwd_functions+=(set_prompt_vars)
+precmd_functions+=(set_prompt_vars)
+PROMPT='${prompt_user} ${prompt_host} ${prompt_var} ${prompt_terminator} '
+
+# Plugins
 source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
