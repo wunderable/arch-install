@@ -361,7 +361,7 @@ sed -i "s/#Color/Color/" /etc/pacman.conf
 # Install packages with pacman
 pacman --noconfirm -S acpid docker docker-compose openssh python3 zsh zsh-autosuggestions zsh-syntax-highlighting # upower pipewire wireplumber alsa-utils
 if <$GUI>; then
-	pacman --noconfirm -S greetd greetd-tuigreet gtk4 hyprland kitty neofetch spotify-launcher ttf-joypixels ttf-roboto-mono-nerd vivaldi vivaldi-ffmpeg-codecs
+	pacman --noconfirm -S fastfetch greetd greetd-tuigreet gtk4 hyprland kitty spotify-launcher ttf-roboto-mono-nerd noto-fonts-emoji vivaldi vivaldi-ffmpeg-codecs
 fi
 
 #######
