@@ -20,6 +20,7 @@ GUI=		# Whether or not to include a GUI (true or false)
 
 # Select device (if $DEV isn't already set)
 if [ -z "$DEV" ]; then
+	echo
 	IFS=$'\n'
 	DEVS=($(lsblk --list --output path,size,type | grep disk | awk '{print $1 " - " $2}'))
 	PS3="Select disk to install to: "
@@ -32,6 +33,7 @@ fi
 
 # Ask whether or not to encrypt the device
 if [ -z "$ENCRYPT" ]; then
+	echo
 	while true; do
 		read -rp "Encrypt the device? (y/n) " CHOICE
 		case "${CHOICE,,}" in
@@ -44,6 +46,7 @@ fi
 
 # Ask for encryption password (if $LUKS_PASS isn't already set)
 if $ENCRYPT && [ -z "$LUKS_PASS" ]; then
+	echo
 	while true; do
 		read -sp "Enter encryption password: " LUKS_PASS
 		echo
@@ -57,11 +60,13 @@ fi
 
 # Ask for username (if $USER isn't already set)
 if [ -z $USER ]; then
+	echo
 	read -p "Enter username: " USER
 fi
 
 # Ask for user password (if $USER_PASS isn't already set)
 if [ -z "$USER_PASS" ]; then
+	echo
 	while true; do
 		read -sp "Enter root/user password: " USER_PASS
 		echo
@@ -75,6 +80,7 @@ fi
 
 # Ask whether or not to auto login the user
 if [ -z "$AUTO_LOGIN" ]; then
+	echo
 	while true; do
 		read -rp "Autologin user? (y/n) " CHOICE
 		case "${CHOICE,,}" in
@@ -87,11 +93,13 @@ fi
 
 # Ask for hostname (if $HOST isn't already set)
 if [ -z "$HOST" ]; then
+	echo
 	read -p "Enter hostname: " HOST
 fi
 
 # Ask to include a GUI
 if [ -z "$GUI" ]; then
+	echo
 	while true; do
 		read -rp "Install a GUI? (y/n) " CHOICE
 		case "${CHOICE,,}" in
