@@ -4,7 +4,10 @@
 
 ### 2. Connect to internet
 If using wifi:
+* Verify devices with `rfkill list`
+* If device is soft blocked `rfkill unblock wifi`
 * Get a list of devices `iwctl device list`
+* If device is powered off `iwctl device <wlan> set-property Powered on`
 * Scan for networks `iwctl station <wlan> scan`
 * View networks `iwctl station <wlan> get-networks`
 * Connect to network `iwctl station <wlan> connect <ssid>`
